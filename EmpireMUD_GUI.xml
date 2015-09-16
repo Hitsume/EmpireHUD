@@ -978,7 +978,7 @@ function draw_score ()
     str = tonumber(msdp["STR"])
     str_perm = tonumber(msdp["STR_PERM"])
     if str<str_perm then colour = colourRed elseif str>str_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["STR"], 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["STR"], 9, 70, y_offset, 0, true)
   end -- if
 
   outlined_text (colourGold, score_window, "To-hit:", 9, x_offset, y_offset, 0)
@@ -1008,7 +1008,7 @@ function draw_score ()
     dex = tonumber(msdp["DEX"])
     dex_perm = tonumber(msdp["DEX_PERM"])
     if dex<dex_perm then colour = colourRed elseif dex>dex_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["DEX"], 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["DEX"], 9, 70, y_offset, 0, true)
   end -- if
 
   outlined_text (colourGold, score_window, "Dodge:", 9, x_offset, y_offset, 0)
@@ -1038,7 +1038,7 @@ function draw_score ()
     int = tonumber(msdp["INT"])
     int_perm = tonumber(msdp["INT_PERM"])
     if int<int_perm then colour = colourRed elseif int>int_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["INT"], 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["INT"], 9, 70, y_offset, 0, true)
   end -- if
 
   outlined_text (colourGold, score_window, "Block:", 9, x_offset, y_offset, 0)
@@ -1064,7 +1064,7 @@ function draw_score ()
     wit = tonumber(msdp["WIT"])
     wit_perm = tonumber(msdp["WIT_PERM"])
     if wit<wit_perm then colour = colourRed elseif wit>wit_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["WIT"], 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["WIT"], 9, 70, y_offset, 0, true)
   end -- if
   
   outlined_text (colourGold, score_window, "Resist: ", 9, x_offset, y_offset, 0)
@@ -1099,7 +1099,7 @@ function draw_score ()
 	cha = tonumber(msdp["CHA"])
 	cha_perm = tonumber(msdp["CHA_PERM"])
     if cha<cha_perm then colour = colourRed elseif cha>cha_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["CHA"], 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["CHA"], 9, 70, y_offset, 0, true)
   end -- if
 
   outlined_text (colourGold, score_window, "+", 9, x_offset-15, y_offset, 0)
@@ -1122,7 +1122,7 @@ function draw_score ()
 	grt = tonumber(msdp["GRT"])
 	grt_perm = tonumber(msdp["GRT_PERM"])
     if grt<grt_perm then colour = colourRed elseif grt>grt_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["GRT"], 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["GRT"], 9, 70, y_offset, 0, true)
   end -- if
   
   y_offset = y_offset + 20
