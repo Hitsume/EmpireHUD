@@ -905,7 +905,8 @@ function draw_energy_bar (type, colour, colour2, colour3, window, current_value,
   else
     regentime = math.ceil((max-current)/(tonumber(regen)/5)).." seconds."
   end
-  WindowHotspotTooltip(window, "hs_tooltip", "Will be full in: "..regentime)
+  if regen == nil then regen = 0 end
+  WindowHotspotTooltip(window, "hs_tooltip", "Regenerating "..regen.." per 5 seconds.\nWill be full in: "..regentime)
   -- redraw the bars
   if current > 0 then
     WindowGradient (window, offset, -1, filled*energybar_width, height/2, colourBlack, colour, 2)
@@ -917,9 +918,7 @@ function draw_energy_bar (type, colour, colour2, colour3, window, current_value,
   -- write the information inside
   outlined_text (colourGold, window, type, 9, 3+offset, (height-14)/2, 0)
   if (type ~= "Enemy") then
-    if regen == nil then regen = 0 end
     outlined_text (colourGold, window, current..' / '..max, 9, 55+offset, (height-14)/2, 90)
-	outlined_text (colourGold, window, '+'..regen..'/5', 9, 200+offset, (height-14)/2, 0, true)
     outlined_text (colourGold, window, math.ceil(percent)..'%', 9, energybar_width-3+offset, (height-14)/2, 0, true)
   else
     outlined_text (colourGold, window, math.ceil(percent)..'%', 9, 55+offset, (height-14)/2, 0)
