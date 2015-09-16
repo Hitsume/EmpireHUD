@@ -7,11 +7,12 @@ add blood bar
 sort cooldowns into shortest first
 add territory bars
 find a better place for affects
+check cooldowns wrap in the right place
 
 -->
 
 <!-- MuClient version 4.51 -->
-
+<!-- Based heavily on KaVir's EmpireMUD GUI/EmpireHUD GUI for MUSHClient 4.51-->
 
 <muclient>
 <plugin
@@ -178,7 +179,7 @@ function create_layout ()
   -- Set the background, using the textured tile.
   ----------------------------------------------------------------------------
 
-  SetBackgroundImage(GetInfo (66) .. "Generic/layout/outer_background.png", 13)
+  SetBackgroundImage(GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/outer_background.png", 13)
 
   ----------------------------------------------------------------------------
   -- Set the main text area.
@@ -232,60 +233,60 @@ function create_layout ()
   end -- if
 
   -- load the paper background image
-  if WindowLoadImage (background_window, "background_background", GetInfo (66) .. "Generic/layout/inner_background.png") == eOK then
+  if WindowLoadImage (background_window, "background_background", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/inner_background.png") == eOK then
     check (WindowDrawImage (background_window, "background_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/inner_background.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/inner_background.png' is missing.")
   end -- if
 
 
   -- load the left border image
-  if WindowLoadImage (background_window, "border_left", GetInfo (66) .. "Generic/layout/border_left.png") == eOK then
+  if WindowLoadImage (background_window, "border_left", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_left.png") == eOK then
     check (WindowDrawImage (background_window, "border_left", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_left.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_left.png' is missing.")
   end -- if
 
   -- load the right border image
-  if WindowLoadImage (background_window, "border_right", GetInfo (66) .. "Generic/layout/border_right.png") == eOK then
+  if WindowLoadImage (background_window, "border_right", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_right.png") == eOK then
     check (WindowDrawImage (background_window, "border_right", right-left-7, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_right.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_right.png' is missing.")
   end -- if
 
   -- load the top border image
-  if WindowLoadImage (background_window, "border_top", GetInfo (66) .. "Generic/layout/border_top.png") == eOK then
+  if WindowLoadImage (background_window, "border_top", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png") == eOK then
     check (WindowDrawImage (background_window, "border_top", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_top.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png' is missing.")
   end -- if
 
   -- load the bottom border image
-  if WindowLoadImage (background_window, "border_bottom", GetInfo (66) .. "Generic/layout/border_bottom.png") == eOK then
+  if WindowLoadImage (background_window, "border_bottom", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_bottom.png") == eOK then
     check (WindowDrawImage (background_window, "border_bottom", 0, bottom-top-7, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_top.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png' is missing.")
   end -- if
 
   -- load the top right corner image
-  if WindowLoadImage (background_window, "corner_tr", GetInfo (66) .. "Generic/layout/corner_tr.png") == eOK then
+  if WindowLoadImage (background_window, "corner_tr", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_tr.png") == eOK then
     check (WindowDrawImage (background_window, "corner_tr", right-left-7, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/corner_tr.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_tr.png' is missing.")
   end -- if
 
   -- load the bottom right corner image
-  if WindowLoadImage (background_window, "corner_br", GetInfo (66) .. "Generic/layout/corner_br.png") == eOK then
+  if WindowLoadImage (background_window, "corner_br", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_br.png") == eOK then
     check (WindowDrawImage (background_window, "corner_br", right-left-7, bottom-top-7, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/corner_br.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_br.png' is missing.")
   end -- if
 
   -- show the window
   WindowShow (background_window, true)
 
   ----------------------------------------------------------------------------
-  -- Create the Generic title at the top of the screen.
+  -- Create the EmpireMUD GUI/EmpireHUD title at the top of the screen.
   ----------------------------------------------------------------------------
 
   width_of_title_image = 358
@@ -303,7 +304,7 @@ function create_layout ()
                 0x000000))  -- background colour
 
   -- load the titlebar image
-  check (WindowLoadImage (titlebar_window, "titlebar", GetInfo (66) .. "Generic/layout/Generic_title.png"))
+  check (WindowLoadImage (titlebar_window, "titlebar", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/Title.png"))
 
   -- draw it
   check (WindowDrawImage (titlebar_window, "titlebar", 0, -20, 0, 0, 3))  -- draw it
@@ -336,52 +337,52 @@ function create_layout ()
                 0x000000))  -- background colour
 
   -- load the left border image
-  if WindowLoadImage (bars_border_window, "border_left", GetInfo (66) .. "Generic/layout/border_left.png") == eOK then
+  if WindowLoadImage (bars_border_window, "border_left", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_left.png") == eOK then
     check (WindowDrawImage (bars_border_window, "border_left", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_left.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_left.png' is missing.")
   end -- if
 
   -- load the right border image
-  if WindowLoadImage (bars_border_window, "border_right", GetInfo (66) .. "Generic/layout/border_right.png") == eOK then
+  if WindowLoadImage (bars_border_window, "border_right", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_right.png") == eOK then
     check (WindowDrawImage (bars_border_window, "border_right", 110+17, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_right.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_right.png' is missing.")
   end -- if
 
   -- load the top border image
-  if WindowLoadImage (bars_border_window, "border_top", GetInfo (66) .. "Generic/layout/border_top.png") == eOK then
+  if WindowLoadImage (bars_border_window, "border_top", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png") == eOK then
     check (WindowDrawImage (bars_border_window, "border_top", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_top.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png' is missing.")
   end -- if
 
   -- load the bottom border image
-  if WindowLoadImage (bars_border_window, "border_bottom", GetInfo (66) .. "Generic/layout/border_bottom.png") == eOK then
+  if WindowLoadImage (bars_border_window, "border_bottom", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_bottom.png") == eOK then
     check (WindowDrawImage (bars_border_window, "border_bottom", 0, 110+17, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_top.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png' is missing.")
   end -- if
 
   -- load the top right corner image
-  if WindowLoadImage (bars_border_window, "corner_tr", GetInfo (66) .. "Generic/layout/corner_tr.png") == eOK then
+  if WindowLoadImage (bars_border_window, "corner_tr", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_tr.png") == eOK then
     check (WindowDrawImage (bars_border_window, "corner_tr", 110+17, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/corner_tr.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_tr.png' is missing.")
   end -- if
 
   -- load the bottom right corner image
-  if WindowLoadImage (bars_border_window, "corner_br", GetInfo (66) .. "Generic/layout/corner_br.png") == eOK then
+  if WindowLoadImage (bars_border_window, "corner_br", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_br.png") == eOK then
     check (WindowDrawImage (bars_border_window, "corner_br", 110+17, 110+17, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/corner_br.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_br.png' is missing.")
   end -- if
 
   -- load the paper background image
-  if WindowLoadImage (bars_window, "bars_background", GetInfo (66) .. "Generic/layout/inner_background.png") == eOK then
+  if WindowLoadImage (bars_window, "bars_background", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/inner_background.png") == eOK then
     check (WindowDrawImage (bars_window, "bars_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/inner_background.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/inner_background.png' is missing.")
   end -- if
 
   -- show the window and its border
@@ -413,52 +414,52 @@ function create_layout ()
                 0x000000))  -- background colour
 
   -- load the left border image
-  if WindowLoadImage (minimap_border_window, "border_left", GetInfo (66) .. "Generic/layout/border_left.png") == eOK then
+  if WindowLoadImage (minimap_border_window, "border_left", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_left.png") == eOK then
     check (WindowDrawImage (minimap_border_window, "border_left", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_left.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_left.png' is missing.")
   end -- if
 
   -- load the right border image
-  if WindowLoadImage (minimap_border_window, "border_right", GetInfo (66) .. "Generic/layout/border_right.png") == eOK then
+  if WindowLoadImage (minimap_border_window, "border_right", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_right.png") == eOK then
     check (WindowDrawImage (minimap_border_window, "border_right", 110+17, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_right.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_right.png' is missing.")
   end -- if
 
   -- load the top border image
-  if WindowLoadImage (minimap_border_window, "border_top", GetInfo (66) .. "Generic/layout/border_top.png") == eOK then
+  if WindowLoadImage (minimap_border_window, "border_top", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png") == eOK then
     check (WindowDrawImage (minimap_border_window, "border_top", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_top.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png' is missing.")
   end -- if
 
   -- load the bottom border image
-  if WindowLoadImage (minimap_border_window, "border_bottom", GetInfo (66) .. "Generic/layout/border_bottom.png") == eOK then
+  if WindowLoadImage (minimap_border_window, "border_bottom", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_bottom.png") == eOK then
     check (WindowDrawImage (minimap_border_window, "border_bottom", 0, 110+17, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_top.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png' is missing.")
   end -- if
 
   -- load the top right corner image
-  if WindowLoadImage (minimap_border_window, "corner_tr", GetInfo (66) .. "Generic/layout/corner_tr.png") == eOK then
+  if WindowLoadImage (minimap_border_window, "corner_tr", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_tr.png") == eOK then
     check (WindowDrawImage (minimap_border_window, "corner_tr", 110+17, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/corner_tr.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_tr.png' is missing.")
   end -- if
 
   -- load the bottom right corner image
-  if WindowLoadImage (minimap_border_window, "corner_br", GetInfo (66) .. "Generic/layout/corner_br.png") == eOK then
+  if WindowLoadImage (minimap_border_window, "corner_br", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_br.png") == eOK then
     check (WindowDrawImage (minimap_border_window, "corner_br", 110+17, 110+17, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/corner_br.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_br.png' is missing.")
   end -- if
 
   -- load the paper background image
-  if WindowLoadImage (minimap_window, "minimap_background", GetInfo (66) .. "Generic/layout/inner_background.png") == eOK then
+  if WindowLoadImage (minimap_window, "minimap_background", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/inner_background.png") == eOK then
     check (WindowDrawImage (minimap_window, "minimap_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/inner_background.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/inner_background.png' is missing.")
   end -- if
 
   -- show the window and its border
@@ -466,8 +467,8 @@ function create_layout ()
   WindowShow (minimap_window, true)
 
   -- load the terrain images
-  check (WindowLoadImage (minimap_window, "terrain_city", GetInfo (66) .. "Generic/maps/terrain_city.bmp"))
-  check (WindowLoadImage (minimap_window, "terrain_dark", GetInfo (66) .. "Generic/maps/terrain_dark.bmp"))
+  check (WindowLoadImage (minimap_window, "terrain_city", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/maps/terrain_city.bmp"))
+  check (WindowLoadImage (minimap_window, "terrain_dark", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/maps/terrain_dark.bmp"))
 
   -- draw the map
   draw_minimap ()
@@ -511,57 +512,57 @@ function create_layout ()
   WindowAddHotspot(score_window, "hs_heal", 0, 0, 1, 1, "", "", "", "", "", "Bonus-Healing", 12, 0);
   
   -- load the left border image
-  if WindowLoadImage (score_border_window, "border_left", GetInfo (66) .. "Generic/layout/border_left.png") == eOK then
+  if WindowLoadImage (score_border_window, "border_left", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_left.png") == eOK then
     check (WindowDrawImage (score_border_window, "border_left", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_left.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_left.png' is missing.")
   end -- if
 
   -- load the right border image
-  if WindowLoadImage (score_border_window, "border_right", GetInfo (66) .. "Generic/layout/border_right.png") == eOK then
+  if WindowLoadImage (score_border_window, "border_right", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_right.png") == eOK then
     check (WindowDrawImage (score_border_window, "border_right", 145+110+17, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_right.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_right.png' is missing.")
   end -- if
 
   -- load the top border image
-  if WindowLoadImage (score_border_window, "border_top", GetInfo (66) .. "Generic/layout/border_top.png") == eOK then
+  if WindowLoadImage (score_border_window, "border_top", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png") == eOK then
     check (WindowDrawImage (score_border_window, "border_top", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_top.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png' is missing.")
   end -- if
 
   -- load the bottom border image
-  if WindowLoadImage (score_border_window, "border_bottom", GetInfo (66) .. "Generic/layout/border_bottom.png") == eOK then
+  if WindowLoadImage (score_border_window, "border_bottom", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_bottom.png") == eOK then
     check (WindowDrawImage (score_border_window, "border_bottom", 0, bottom - top - 7, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/border_top.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/border_top.png' is missing.")
   end -- if
 
   -- load the top right corner image
-  if WindowLoadImage (score_border_window, "corner_tr", GetInfo (66) .. "Generic/layout/corner_tr.png") == eOK then
+  if WindowLoadImage (score_border_window, "corner_tr", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_tr.png") == eOK then
     check (WindowDrawImage (score_border_window, "corner_tr", 145+110+17, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/corner_tr.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_tr.png' is missing.")
   end -- if
 
   -- load the bottom right corner image
-  if WindowLoadImage (score_border_window, "corner_br", GetInfo (66) .. "Generic/layout/corner_br.png") == eOK then
+  if WindowLoadImage (score_border_window, "corner_br", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_br.png") == eOK then
     check (WindowDrawImage (score_border_window, "corner_br", 145+110+17, bottom - top - 7, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/corner_br.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/corner_br.png' is missing.")
   end -- if
 
   -- load the paper background image
-  if WindowLoadImage (score_window, "score_background", GetInfo (66) .. "Generic/layout/inner_background.png") == eOK then
+  if WindowLoadImage (score_window, "score_background", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/inner_background.png") == eOK then
     check (WindowDrawImage (score_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. "Generic/layout/inner_background.png' is missing.")
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/layout/inner_background.png' is missing.")
   end -- if
 
   -- load the avatar image
-  if WindowLoadImage (score_window, "avatar", GetInfo (66) .. "Generic/avatars/Default.png") ~= eOK then
-    Note( "File '" .. GetInfo (66) .. "Generic/avatars/Default.png' is missing.")
+  if WindowLoadImage (score_window, "avatar", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/avatars/Default.png") ~= eOK then
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/avatars/Default.png' is missing.")
   end -- if
 
   -- fill in the window
@@ -1436,9 +1437,9 @@ function draw_affects ()
                     colourBlack))      -- background colour
       WindowSetZOrder (win, 21)
       -- load the icon
-      if WindowLoadImage (win, affect, GetInfo (66) .. "Generic/affects/" .. AffectName[i] .. ".png") == eOK then
+      if WindowLoadImage (win, affect, GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/affects/" .. AffectName[i] .. ".png") == eOK then
         check (WindowDrawImage (win, affect, 1, 1, 33, 33, 2))  -- draw the icon
-      elseif WindowLoadImage (win, affect, GetInfo (66) .. "Generic/affects/default.png") == eOK then
+      elseif WindowLoadImage (win, affect, GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/affects/default.png") == eOK then
         check (WindowDrawImage (win, affect, 1, 1, 33, 33, 2))  -- draw the default icon instead
       else -- even the default spell icon is missing
         Note( "Missing spell icons.")
