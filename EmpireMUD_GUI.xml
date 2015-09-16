@@ -119,6 +119,7 @@ function gui_hide (name, line, wildcards)
   WindowShow(score_border_window, false)
   WindowShow(health_window, false)
   WindowShow(mana_window, false)
+  WindowShow(blood_window, false)
   WindowShow(movement_window, false)
   local i = 1
   local status = true
