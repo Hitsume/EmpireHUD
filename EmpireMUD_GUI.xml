@@ -77,7 +77,7 @@ function gui_show (name, line, wildcards)
   draw_energy_bars ()
   -- redraw the spell affect icons
   draw_affects ()
-  draw_cooldowns ()
+  
   Redraw()
 --[[
   WindowShow(background_window, true)
@@ -98,14 +98,6 @@ function gui_show (name, line, wildcards)
 end --gui_show
 
 function gui_hide (name, line, wildcards)
-  -- redraw the score sheet
-  draw_score ()
-  -- redraw the energy bars
-  draw_energy_bars ()
-  -- redraw the spell affect icons
-  draw_affects ()
-  draw_cooldowns ()
-  Redraw()
   gui_on = false
   WindowShow(background_window, false)
   WindowShow(border_window, false)
@@ -149,13 +141,19 @@ function gui_hide (name, line, wildcards)
   ColourNote ("yellow", "", "GUI now hidden. Type 'gui show' to show it.")
 end --gui_hide
 
+left = 25 -- was 175
+top = 73
+right_offset = -320
+bottom_offset = -20
+right = GetInfo (281) + right_offset
+bottom = GetInfo (280) + bottom_offset  -- 32 pixels from bottom
+
 -- create the layout here, on getting the prompt, or window resize
 function create_layout ()
   if not gui_on then return end
-  left = 25 --175
-  top = 73
-  right = GetInfo (281) - 320
-  bottom = GetInfo (280) - 20  -- 32 pixels from bottom
+ 
+  right = GetInfo (281) + right_offset
+  bottom = GetInfo (280) + bottom_offset
 
   -- if its less than this, we lose the map
   min_width = 50 + GetInfo (213) * 81 -- offset + width for 81 characters
@@ -563,7 +561,7 @@ function create_layout ()
 
   -- draw the spell affect icons
   draw_affects ()
-  draw_cooldowns ()
+  
   -- show the window and its border
   WindowShow (score_border_window, true)
   WindowShow (score_window, true)
@@ -1189,6 +1187,10 @@ function draw_score ()
      draw_xp_bar ("Vampire", colour, colour2, score_window, (score_width-xpbar_width)/2, y_offset, msdp["VAMPIRE_EXP"], 100, msdp["VAMPIRE_LEVEL"])
     end
   end
+  right = GetInfo (281) + right_offset
+  bottom = GetInfo (280) + bottom_offset
+  draw_cooldowns(right+34, top+y_offset+11)
+
 end -- draw_score
 
 
@@ -1276,16 +1278,15 @@ end -- function
 function seconds_to_minutes(seconds)
   minutes = math.floor(seconds/60)
   seconds = seconds-minutes*60
-  if seconds<9 then seconds = "0"..seconds end --:0 becomes :00
   if minutes>0 then
+    if seconds<9 then seconds = "0"..seconds end --:0 becomes :00
     return minutes..":"..seconds
   else
     return seconds
   end
 end
 
-function draw_cooldowns ()
-  Note("Drawing cooldowns")
+function draw_cooldowns (startx, starty)
   cooldowns = msdp["COOLDOWNS"]
   if cooldowns == nil or cooldowns == "None" then
     for i=1,CooldownMax,1 do
@@ -1308,7 +1309,6 @@ function draw_cooldowns ()
       -- draw the icons left to right, top to bottom
       if i > 1 then
         if offset_x == 0 then
---[[
           offset_x = 36
         elseif offset_x == 36 then
           offset_x = 72
@@ -1316,7 +1316,6 @@ function draw_cooldowns ()
           offset_x = 108
         else
           offset_x = 0
---]]
           offset_y = offset_y + 36
         end -- if
       end -- if
@@ -1325,8 +1324,8 @@ function draw_cooldowns ()
 
       -- make a miniwindow under the text
       check (WindowCreate (win,   -- window ID
-                    50+offset_x,  -- left, GetInfo(281)-320-39
-                    50+offset_y, -- top, 73
+                    startx+offset_x,  -- left, GetInfo(281)-320-39
+                    starty+offset_y, -- top, 73
                     34,           -- width
                     34,           -- depth
                     12,           -- center it (ignored anyway) 
@@ -1602,7 +1601,7 @@ function OnPluginTelnetSubnegotiation (type, data)
 
     -- redraw the spell affect icons
     draw_affects ()
-    draw_cooldowns ()
+    
     Redraw()
 
   end -- if
