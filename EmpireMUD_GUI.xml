@@ -965,13 +965,13 @@ function draw_score ()
   WindowMoveHotspot(score_window, "hs_str", 0, y_offset, x_offset-40, y_offset+12)
   WindowHotspotTooltip(score_window, "hs_str", "Not working properly.")
   if msdp["STR"] ~= nil and msdp["STR_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_str", "Min: 1. Max: 15.\nProviding +"..msdp["STR"].." physical damage.")
+    WindowHotspotTooltip(score_window, "hs_str", "Min: 1. Base: "..msdp["STR_PERM"]..". Max: 15.\nProviding +"..msdp["STR"].." physical damage.")
     colour = colourSilver
     --convert to numbers to allow comparison
     str = tonumber(msdp["STR"])
     str_perm = tonumber(msdp["STR_PERM"])
     if str<str_perm then colour = colourRed elseif str>str_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["STR"]..' ('..msdp["STR_PERM"]..')', 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["STR"], 9, 45, y_offset, 0)
   end -- if
 
   outlined_text (colourGold, score_window, "To-hit:", 9, x_offset, y_offset, 0)
@@ -995,13 +995,13 @@ function draw_score ()
   outlined_text (colourGold, score_window, "Dex:", 9, 5, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_dex", 0, y_offset, x_offset-40, y_offset+12)
   if msdp["DEX"] ~= nil and msdp["DEX_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_dex", "Min: 0. Max: 15.\nProviding +"..(tonumber(msdp["DEX"])*5).." To-hit & Dodge.")
+    WindowHotspotTooltip(score_window, "hs_dex", "Min: 0. Base: "..msdp["DEX_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["DEX"])*5).." To-hit & Dodge.")
     colour = colourSilver
     --convert to numbers to allow comparison
     dex = tonumber(msdp["DEX"])
     dex_perm = tonumber(msdp["DEX_PERM"])
     if dex<dex_perm then colour = colourRed elseif dex>dex_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["DEX"]..' ('..msdp["DEX_PERM"]..')', 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["DEX"], 9, 45, y_offset, 0)
   end -- if
 
   outlined_text (colourGold, score_window, "Dodge:", 9, x_offset, y_offset, 0)
@@ -1009,7 +1009,7 @@ function draw_score ()
   if msdp["DODGE"] ~= nil then
     if msdp["LEVEL"] ~= nil and msdp["DEX"] ~= nil and msdp["TO_HIT"] ~= nil then
       --calculate fun stats
-      local tododge_self = math.min(95, math.max(0, tonumber(msdp["DODGE"])-tonumber(msdp["TO_HIT"])))
+      local tododge_self = math.min(95, math.max(0, tonumber(msdp["DODGE"])-tonumber(msdp["TO_HIT"])+100))
       local trash_tohit = math.ceil(math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))+50
       local trash_dex = math.min(15, math.max(0, math.ceil(tonumber(msdp["LEVEL"])*20)))
       local tododge_trash = math.min(75, math.max(0, 5*(trash_dex-tonumber(msdp["DEX"]))+(tonumber(msdp["DODGE"])-trash_tohit)))
@@ -1025,13 +1025,13 @@ function draw_score ()
   outlined_text (colourGold, score_window, "Int:", 9, 5, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_int", 0, y_offset, x_offset-40, y_offset+12)
   if msdp["INT"] ~= nil and msdp["INT_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_int", "Min: 1. Max: 15.\nProviding +"..msdp["INT"].." magical damage.")
+    WindowHotspotTooltip(score_window, "hs_int", "Min: 1. Base: "..msdp["INT_PERM"]..". Max: 15.\nProviding +"..msdp["INT"].." magical damage.")
     colour = colourSilver
     --convert to numbers to allow comparison
     int = tonumber(msdp["INT"])
     int_perm = tonumber(msdp["INT_PERM"])
     if int<int_perm then colour = colourRed elseif int>int_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["INT"]..' ('..msdp["INT_PERM"]..')', 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["INT"], 9, 45, y_offset, 0)
   end -- if
 
   outlined_text (colourGold, score_window, "Block:", 9, x_offset, y_offset, 0)
@@ -1052,12 +1052,12 @@ function draw_score ()
   outlined_text (colourGold, score_window, "Wit:", 9, 5, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_wit", 0, y_offset, x_offset-40, y_offset+12)
   if msdp["WIT"] ~= nil and msdp["WIT_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_wit", "Min: 0. Max: 15.\nProviding "..(tonumber(msdp["WIT"])*0.025*100).."% faster attack speed.")
+    WindowHotspotTooltip(score_window, "hs_wit", "Min: 0. Base: "..msdp["WIT_PERM"]..". Max: 15.\nProviding "..(tonumber(msdp["WIT"])*0.025*100).."% faster attack speed.")
     colour = colourSilver
     wit = tonumber(msdp["WIT"])
     wit_perm = tonumber(msdp["WIT_PERM"])
     if wit<wit_perm then colour = colourRed elseif wit>wit_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["WIT"]..' ('..msdp["WIT_PERM"]..')', 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["WIT"], 9, 45, y_offset, 0)
   end -- if
   
   outlined_text (colourGold, score_window, "Resist: ", 9, x_offset, y_offset, 0)
@@ -1087,12 +1087,12 @@ function draw_score ()
   outlined_text (colourGold, score_window, "Cha:", 9, 5, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_cha", 0, y_offset, x_offset-40, y_offset+12)
   if msdp["CHA"] ~= nil and msdp["CHA_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_cha", "Min: 1. Max: 15.")
+    WindowHotspotTooltip(score_window, "hs_cha", "Min: 1. Base: "..msdp["CHA_PERM"]..". Max: 15.")
     colour = colourSilver
 	cha = tonumber(msdp["CHA"])
 	cha_perm = tonumber(msdp["CHA_PERM"])
     if cha<cha_perm then colour = colourRed elseif cha>cha_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["CHA"]..' ('..msdp["CHA_PERM"]..')', 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["CHA"], 9, 45, y_offset, 0)
   end -- if
 
   outlined_text (colourGold, score_window, "+", 9, x_offset-15, y_offset, 0)
@@ -1110,12 +1110,12 @@ function draw_score ()
   outlined_text (colourGold, score_window, "Grt:", 9, 5, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_grt", 0, y_offset, x_offset-40, y_offset+12)
   if msdp["GRT"] ~= nil and msdp["GRT_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_grt", "Min: 0. Max: 15.\nProviding +"..(tonumber(msdp["GRT"])*35).." territory.")
+    WindowHotspotTooltip(score_window, "hs_grt", "Min: 0. Base: "..msdp["GRT_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["GRT"])*35).." territory.")
     colour = colourSilver
 	grt = tonumber(msdp["GRT"])
 	grt_perm = tonumber(msdp["GRT_PERM"])
     if grt<grt_perm then colour = colourRed elseif grt>grt_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["GRT"]..' ('..msdp["GRT_PERM"]..')', 9, 45, y_offset, 0)
+    outlined_text (colour, score_window, msdp["GRT"], 9, 45, y_offset, 0)
   end -- if
   
   y_offset = y_offset + 20
