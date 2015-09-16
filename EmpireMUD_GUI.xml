@@ -31,6 +31,8 @@ icons for stats?
 <aliases>
 <alias script="gui_show" match="gui show" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_hide" match="gui hide" enabled="y" sequence="100" ignore_case="y" />
+<alias script="gui_show" match="gui on" enabled="y" sequence="100" ignore_case="y" />
+<alias script="gui_hide" match="gui off" enabled="y" sequence="100" ignore_case="y" />
 </aliases>
 
 <!--  Get our standard constants -->
