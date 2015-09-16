@@ -1228,7 +1228,7 @@ end -- function
 function seconds_to_minutes(seconds)
   minutes = math.floor(seconds/60)
   seconds = seconds-minutes*60
-  if seconds == 0 then seconds = "00" end
+  if seconds<9 then seconds = "0"..seconds end --:0 becomes :00
   if minutes>0 then
     return minutes..":"..seconds
   else
