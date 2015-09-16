@@ -3,12 +3,11 @@
 <!-- TODO
 
 [/ooc Khufu]: I would show dots as affects with icon, duration, and "x3" for stacks, then mouseover for name, type, damage
-add blood bar
 sort cooldowns into shortest first
-add territory bars
+add dots
 find a better place for affects
 check cooldowns wrap in the right place
-
+icons for stats?
 -->
 
 <!-- MuClient version 4.51 -->
@@ -59,7 +58,7 @@ local mana_window = "mana_bar"  -- miniwindow ID
 local movement_window = "movement_bar"  -- miniwindow ID
 local affect_window_prefix = "affect_window_" --miniwindow ID
 local cooldown_window_prefix = "cooldown_window_" --miniwindow ID
---local exp_window = "exp_bar"  -- miniwindow ID
+local blood_window = "blood_bar"  -- miniwindow ID
 local gui_on = true
 local msdp = {}
 local colourGold = ColourNameToRGB("gold")
@@ -75,7 +74,7 @@ local primary_energy_bar_y_offset = 75
 local energybar_width = score_width
 local energybar_offset = 0
 local energybar_height = 20
-local energybar_spacing = 5
+local energybar_spacing = 0
 
 function gui_show (name, line, wildcards)
   gui_on = true
@@ -497,6 +496,7 @@ function create_layout ()
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
   --add hotspots
+  WindowAddHotspot(score_window, "hs_terr", 0, 0, 1, 1, "", "", "", "", "", "Territory", 12, 0);
   WindowAddHotspot(score_window, "hs_str", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
   WindowAddHotspot(score_window, "hs_dex", 0, 0, 1, 1, "", "", "", "", "", "Dexterity", 12, 0);
   WindowAddHotspot(score_window, "hs_int", 0, 0, 1, 1, "", "", "", "", "", "Intelligence", 12, 0);
@@ -624,19 +624,20 @@ function create_layout ()
   WindowSetZOrder (movement_window, 20)
   WindowAddHotspot(movement_window, "hs_tooltip", 0, 0, energybar_width, energybar_height, "", "", "", "", "", "This is a tooltip!", 12, 0)
   
---[[  -- make a miniwindow under the text
-  check (WindowCreate (exp_window,   -- window ID
-                35,            -- left
-                169,           -- top
-                100,           -- width
-                20,            -- depth
+  -- make a miniwindow under the text
+  check (WindowCreate (blood_window,   -- window ID
+                right+primary_energy_bar_x_offset+energybar_offset,            -- left
+                top+primary_energy_bar_y_offset+(energybar_height+energybar_spacing)*3,           -- top
+                energybar_width,   -- width
+                energybar_height,            -- depth
                 12,            -- center it (ignored anyway) 
                 2,             -- draw underneath (1) + absolute location (2)
                 colourBlack))  -- background colour
 
   -- show the window
-  WindowShow (exp_window, true)
---]]
+  WindowShow (blood_window, true)
+  WindowSetZOrder (blood_window, 20)
+  WindowAddHotspot(blood_window, "hs_tooltip", 0, 0, energybar_width, energybar_height, "", "", "", "", "", "This is a tooltip!", 12, 0)
   -- draw the energy bars
   draw_energy_bars ()
 
@@ -816,39 +817,62 @@ function draw_energy_bars ()
   end
   last_movement_time = os.time()
   
-  -- EXP
-  current_exp = msdp["OPPONENT_HEALTH"]
-  max_exp = 100
-
- --[[ -- initialise with empty bars
-  if current_exp == nil then
-    current_exp = 0
-    max_exp = 0
+  -- Blood
+  current_blood = msdp["BLOOD"]
+  max_blood = msdp["BLOOD_MAX"]
+  if msdp["BLOOD_UPKEEP"]~= nil then
+    blood_regen = ""..tonumber(msdp["BLOOD_UPKEEP"]) * -1
+  end
+  
+  -- initialise with empty bars
+  if current_blood == nil then
+    current_blood = 0
+    max_blood = 0
   end -- if
 
-  if current_exp ~= nil and max_exp ~= nil then
-    type = "Enemy"
-    colour = 0x00AAAA
-    colour2 = 0x003333
-	colour3 = 0x00FFFF
-    draw_energy_bar(type, colour, colour2, colour3, exp_window, current_exp, max_exp)
+  if current_blood ~= nil and max_blood ~= nil and msdp["VAMPIRE_LEVEL"] ~= nil and msdp["VAMPIRE_LEVEL"] ~= 0 then
+    type = "Blood"
+    colour = 0x0000CC
+    colour2 = 0x000033
+	colour3 = 0x3333AA
+    draw_energy_bar(type, colour, colour2, colour3, blood_window, current_blood, max_blood, last_blood, blood_regen)
   end -- if
   
   --update the "previous value"
-  if last_exp == nil or os.time()-last_exp_time>=1 then
-    last_exp = current_exp
+  if last_blood == nil or os.time()-last_blood_time>=1 then
+    last_blood = current_blood
   end
-  last_exp_time = os.time()
---]]
+  last_blood_time = os.time()
+
 end -- draw_energy_bars
 
+function draw_mini_bar (colour, colour2, window, x_offset, y_offset, width, height, current_value, max_value)
+  current = tonumber(current_value)
+  max = tonumber(max_value)
+
+  WindowGradient (window, x_offset, y_offset-1, width+x_offset, y_offset+height/2, colourBlack, colour2, 2)
+  WindowGradient (window,  x_offset, y_offset+height/2, width+x_offset, y_offset+height+1, colour2, colourBlack, 2)
+
+  if max > 0 then
+    filled = current / max
+  else -- avoid division by zero
+    filled = 0
+  end -- if
+  -- redraw the bars
+  if current > 0 then
+    --ceil is required to avoid very nearly empty bars appearing full
+	--(if filled is small enough to make filled*width a fraction)
+    WindowGradient (window, x_offset, y_offset-1, math.ceil(filled*width)+x_offset, y_offset+height/2, colourBlack, colour, 2)
+    WindowGradient (window, x_offset, y_offset+height/2, math.ceil(filled*width)+x_offset, y_offset+height+1, colour, colourBlack, 2)
+  end
+end
 
 function draw_xp_bar (skill, colour, colour2, window, x_offset, y_offset, current_value, max_value, level_value)
   -- convert the strings to numbers
 --  Note(current_value.."/"..max_value)
   current = tonumber(current_value)
   max = tonumber(max_value)
-  if level_value==nil then level_value=0 end
+  if level_value==nil then level_value = "0" end
   level = tonumber(level_value)
   -- Apply limits
   if current < 0 then
@@ -885,14 +909,16 @@ end --of draw_xp_bar
 
 -- fill the bar
 function draw_energy_bar (type, colour, colour2, colour3, window, current_value, max_value, previous_value, regen)
+
   -- convert the strings to numbers
   current = tonumber(current_value)
   max = tonumber(max_value)
   if previous_value == nil then previous_value = "0" end
-  if regen == nil then regen = 0 end
+  if regen == nil then regen = "0" end
   --Note(type..", "..current_value..", "..max_value..", "..previous_value)
   previous = tonumber(previous_value)
   -- Apply limits
+  
   if current < 0 then
     current = 0
   elseif current > max then
@@ -916,13 +942,18 @@ function draw_energy_bar (type, colour, colour2, colour3, window, current_value,
 	filled2 = 0
 	percent = 0
   end -- if
-  if tonumber(regen) <=0 then
+  if tonumber(regen) < 0 then
+    regentime = math.ceil(current/(tonumber(regen)/-75)).." seconds."
+  elseif tonumber(regen) == 0 then
     regentime = "Never."
   else
     regentime = math.ceil((max-current)/(tonumber(regen)/5)).." seconds."
   end
-  if regen == nil then regen = 0 end
-  WindowHotspotTooltip(window, "hs_tooltip", "Regenerating "..regen.." per 5 seconds.\nWill be full in: "..regentime)
+  if tonumber(regen) < 0 then
+    WindowHotspotTooltip(window, "hs_tooltip", "Spending "..(tonumber(regen)*-1).." per 75 seconds.\nWill be empty in: "..regentime)
+  else
+    WindowHotspotTooltip(window, "hs_tooltip", "Regenerating "..regen.." per 5 seconds.\nWill be full in: "..regentime)
+  end
   -- redraw the bars
   if current > 0 then
     WindowGradient (window, offset, -1, filled*energybar_width, height/2, colourBlack, colour, 2)
@@ -969,14 +1000,37 @@ function draw_score ()
   if msdp["EMPIRE_NAME"] ~= nil and msdp["EMPIRE_RANK"] ~= nil then
     outlined_text (colourSilver, score_window, '<'..msdp["EMPIRE_RANK"]..' of '..msdp["EMPIRE_NAME"]..'>', 8, 0, y_offset, score_width)
   end -- if
-  
-  y_offset = y_offset + 22
+  y_offset = y_offset + 16
+  WindowMoveHotspot(score_window, "hs_terr", 0, y_offset, score_width, y_offset+6)
+  if msdp["EMPIRE_TERRITORY"] ~= nil and msdp["EMPIRE_TERRITORY_MAX"] ~= nil then
+    draw_mini_bar(0xaa00aa, 0x330033, score_window, 0, y_offset, score_width, 3, msdp["EMPIRE_TERRITORY"], msdp["EMPIRE_TERRITORY_MAX"])
+  end
+  y_offset = y_offset + 3
+  if msdp["EMPIRE_TERRITORY_OUTSIDE"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"] ~= nil then
+    draw_mini_bar(0xaaaaaa, 0x333333, score_window, 0, y_offset, score_width, 3, msdp["EMPIRE_TERRITORY_OUTSIDE"], msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"])
+  end
+  if msdp["EMPIRE_TERRITORY"] ~= nil and msdp["EMPIRE_TERRITORY_MAX"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"] ~= nil then
+    local territory = tonumber(msdp["EMPIRE_TERRITORY"])
+	local maxterritory = tonumber(msdp["EMPIRE_TERRITORY_MAX"])
+	local outside = tonumber(msdp["EMPIRE_TERRITORY_OUTSIDE"])
+	local maxoutside = tonumber(msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"])
+	local territoryfree = maxterritory-territory
+	local outsidefree = maxoutside - outside
+	local tooltip = "Total territory: "..territory.."/"..maxterritory.." ("..math.floor(territory/maxterritory*100).."%) - "..territoryfree.." left.\n"
+	local tooltip = tooltip.."Outside territory: "..outside.."/"..maxoutside.." ("..math.floor(outside/maxoutside*100).."%) - "..outsidefree.." left."
+    WindowHotspotTooltip(score_window, "hs_terr", tooltip)
+  end
+  y_offset = y_offset + 3
 --  text_line = 'Level '..msdp["LEVEL"]..' '..msdp["RACE"]..' '..msdp["CLASS"]
   text_line = 'Level '..msdp["LEVEL"]..' '..msdp["CLASS"]
   outlined_text (colourGold, score_window, text_line, 10, 5, y_offset, score_width)
 
   --y_offset = y_offset + 145
-  y_offset = y_offset + 100
+    y_offset = y_offset + 80
+  if not no_blood then
+    y_offset = y_offset + 20
+  end
+  
   outlined_text (colourGold, score_window, "Str:", 9, 5, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_str", 0, y_offset, x_offset-40, y_offset+12)
   WindowHotspotTooltip(score_window, "hs_str", "Not working properly.")
@@ -1192,8 +1246,14 @@ function draw_score ()
   end
   if msdp["VAMPIRE_EXP"] ~= nil and msdp["VAMPIRE_LEVEL"] ~= nil then
     if tonumber(msdp["VAMPIRE_LEVEL"])>0 or tonumber(msdp["VAMPIRE_EXP"])>0 then
-     if max_level(msdp["VAMPIRE_LEVEL"]) then colour = colourMax1 colour2 = colourMax2 else colour = colourNormal1 colour2 = colourNormal2 end
-     draw_xp_bar ("Vampire", colour, colour2, score_window, (score_width-xpbar_width)/2, y_offset, msdp["VAMPIRE_EXP"], 100, msdp["VAMPIRE_LEVEL"])
+      if max_level(msdp["VAMPIRE_LEVEL"]) then colour = colourMax1 colour2 = colourMax2 else colour = colourNormal1 colour2 = colourNormal2 end
+      draw_xp_bar ("Vampire", colour, colour2, score_window, (score_width-xpbar_width)/2, y_offset, msdp["VAMPIRE_EXP"], 100, msdp["VAMPIRE_LEVEL"])
+      y_offset = y_offset + spacing
+	  WindowShow(blood_window, true) --just in case
+	  no_blood = false
+	else
+	  WindowShow(blood_window, false) --hide the blood bar
+	  no_blood = true
     end
   end
   right = GetInfo (281) + right_offset
@@ -1531,8 +1591,8 @@ function OnPluginTelnetRequest (type, data)
 	Secondary = "\2TO_HIT\2DODGE\2BLOCK\2RESIST_PHYSICAL\2RESIST_MAGICAL\2BONUS_PHYSICAL\2BONUS_MAGICAL\2BONUS_HEALING" --the secondary stats
 	Skills = "\2BATTLE_EXP\2EMPIRE_EXP\2HIGH_SORCERY_EXP\2NATURAL_MAGIC_EXP\2STEALTH_EXP\2SURVIVAL_EXP\2TRADE_EXP\2VAMPIRE_EXP"
 	Skills = Skills.."\2BATTLE_LEVEL\2EMPIRE_LEVEL\2HIGH_SORCERY_LEVEL\2NATURAL_MAGIC_LEVEL\2STEALTH_LEVEL\2SURVIVAL_LEVEL\2TRADE_LEVEL\2VAMPIRE_LEVEL"
-	Bars = "\2HEALTH_MAX\2HEALTH_REGEN\2HEALTH\2MANA_MAX\2MANA_REGEN\2MANA\2MOVEMENT_MAX\2MOVEMENT_REGEN\2MOVEMENT\2BLOOD\2BLOOD_MAX" --health mana move blood
-	Other = "\2EMPIRE_RANK\2EMPIRE_NAME\2OPPONENT_HEALTH" --more stuff
+	Bars = "\2HEALTH_MAX\2HEALTH_REGEN\2HEALTH\2MANA_MAX\2MANA_REGEN\2MANA\2MOVEMENT_MAX\2MOVEMENT_REGEN\2MOVEMENT\2BLOOD\2BLOOD_MAX\2BLOOD_UPKEEP" --health mana move blood
+	Other = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX\2OPPONENT_HEALTH" --more stuff
 	
     Start = "\255\250\69\1REPORT"
 	Mid = Basic..Primary..Secondary..Bars..Skills..Other
