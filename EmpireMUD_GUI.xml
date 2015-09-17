@@ -1349,11 +1349,11 @@ function init_cooldowns (data)
   end -- if  
 end -- function
 
-function seconds_to_minutes(seconds)
+function seconds_to_minutes (seconds)
   minutes = math.floor(seconds/60)
   seconds = seconds-minutes*60
   if minutes>0 then
-    if seconds<9 then seconds = "0"..seconds end --:0 becomes :00
+    if seconds<10 then seconds = "0"..seconds end --:0 becomes :00
     return minutes..":"..seconds
   else
     return seconds
@@ -1468,12 +1468,14 @@ function draw_cooldowns (startx, starty)
         return
       end -- if
 	  
-      if tonumber(CooldownDuration[i]) < 60 then
-        offset = 9
-      elseif tonumber(CooldownDuration[i]) < 600 then
-        offset = 1
-      else -- 3 digits
-        offset = 0
+      if tonumber(CooldownDuration[i]) < 10 then --1 digit
+        offset = 18
+      elseif tonumber(CooldownDuration[i]) < 60 then --2 digits
+        offset = 22
+      elseif tonumber(CooldownDuration[i]) < 600 then --3 digits
+	    offset = 26
+      else -- 4 digits
+        offset = 30
       end -- if
 
       if tonumber(CooldownDuration[i]) < 0 then
@@ -1484,7 +1486,7 @@ function draw_cooldowns (startx, starty)
         WindowFont(win,'f','Times New Roman',6,1,0,0,0)
         WindowText(win,'f',"O",4,21,0,0,colour,0)
       else -- write the duration
-        outlined_text (colour, win, seconds_to_minutes(tonumber(CooldownDuration[i])), 6, 4, 21, 0)
+        outlined_text (colour, win, seconds_to_minutes(tonumber(CooldownDuration[i])), 6, offset, 21, 0, true) --4->32
       end -- if
 
       -- show the window
@@ -1493,7 +1495,7 @@ function draw_cooldowns (startx, starty)
       end
 
       -- create a hotspot over the timer
-      WindowAddHotspot(win, "hs_cooldown_"..i, 0, 0, 34, 34, "", "", "", "", "", CooldownName[i], 1, 0)
+      WindowAddHotspot(win, "hs_cooldown_"..i, 0, 0, 34, 34, "", "", "", "", "AffectMouseUp", CooldownName[i], 1, 0)
     end -- if
   end -- for
 end --function
@@ -1563,10 +1565,10 @@ function draw_affects ()
         return
       end -- if
 
-      if tonumber(AffectDuration[i]) < 60 then
-        offset = 9
-      elseif tonumber(AffectDuration[i]) < 600 then
-        offset = 1
+      if tonumber(AffectDuration[i]) < 10 then
+        offset = 18
+      elseif tonumber(AffectDuration[i]) < 60 then
+        offset = 15
       else -- 3 digits
         offset = 0
       end -- if
@@ -1579,7 +1581,7 @@ function draw_affects ()
         WindowFont(win,'f','Times New Roman',6,1,0,0,0)
         WindowText(win,'f',"O",4,21,0,0,colour,0)
       else -- write the duration
-        outlined_text (colour, win, seconds_to_minutes(tonumber(AffectDuration[i])), 6, 4, 21, 0)
+        outlined_text (colour, win, seconds_to_minutes(tonumber(AffectDuration[i])), 6, 32, 21, 0, true) --4->32
       end -- if
 
       -- show the window
