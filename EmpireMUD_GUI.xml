@@ -1708,7 +1708,7 @@ function OnPluginTelnetSubnegotiation (type, data)
     endpos = string.len(data)
     bName = false
     bValue = false
-    bTable = false
+    bTable = 0
     bIgnore = false
     variable = nil
     value = nil
@@ -1716,7 +1716,7 @@ function OnPluginTelnetSubnegotiation (type, data)
 --Note('Raw data: ['..data..']')
 
     for i=1,endpos,1 do
-      if string.byte(data,i) == 1 and bTable == false then
+      if string.byte(data,i) == 1 and bTable == 0 then
         if variable ~= nil and value ~= nil then
           StoreVariable(variable, value)
           variable = nil
@@ -1724,17 +1724,17 @@ function OnPluginTelnetSubnegotiation (type, data)
         end -- if
         bName = true
         bValue = false
-      elseif string.byte(data,i) == 2 and bTable == false then
+      elseif string.byte(data,i) == 2 and bTable == 0 then
         if value ~= nil then
           value = value.." "
         end -- if
         bName = false
         bValue = true
       elseif string.byte(data,i) == 3 then
-        bTable = true
+        bTable = bTable + 1
         bIgnore = true
       elseif string.byte(data,i) == 4 then
-        bTable = false
+        bTable = bTable - 1
       elseif bIgnore == true then
         bIgnore = false -- Just ignore one character.
       elseif bName == true then
