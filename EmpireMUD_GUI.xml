@@ -1268,6 +1268,42 @@ function draw_score ()
 
 end -- draw_score
 
+function unpack_array(msdp_data)
+  --Unpack an array of the form \1VAR_NAME\2VAR_VALUE\1VAR_NAME\2VAR_VALUE etc.
+  local position = 1
+  local i = 1
+  local data = {}
+  while position<string.len(msdp_data) do
+  
+    st, en = string.find(msdp_data, "\001", position, true) --find the leading \1
+	if st == nil then
+	  --no more variables
+	  break
+	end
+	position = en+1
+	
+	st2, en2 = string.find(msdp_data, "\002", position, true) --find the leading \2 of the value
+	if st2 == nil then
+	  --key/value mismatch: abort
+	  Note("Key/value mismatch in unpack_array! Data: "..msdp_data)
+	  return nil
+	end
+	position = en2+1
+
+    st3, en3 = string.find(msdp_data, "\001", position, true) --find the leading \1 of the *next* variable
+	if st3 == nil then
+	  --no more variables
+	  st3 = string.len(msdp_data)+1 --ends at the end of the string
+	end
+	local key = string.sub(msdp_data, en+1, st2-1) --\001 to \002
+	local value = string.sub(msdp_data, en2+1, st3-1) --\002 to the next \001 or the end of the string
+	data[key] = value
+	position = en2+1
+  end
+  for k, v in pairs(data) do
+    Note(k..": "..v)
+  end
+end
 
 local AffectName = {}
 local AffectDuration = {}
@@ -1648,7 +1684,7 @@ function OnPluginTelnetRequest (type, data)
   elseif type == MSDP and data == "SENT_DO" then
     -- IAC SB MSDP response IAC SE 
     -- Split up for readability...
-	Basic = "\2CHARACTER_NAME\2CLASS\2LEVEL\2ROOM_EXITS\2AFFECTS\2COOLDOWNS" --name class level exits affects
+	Basic = "\2CHARACTER_NAME\2CLASS\2LEVEL\2ROOM_EXITS\2AFFECTS\2COOLDOWNS\2DOTS" --name class level exits affects
 	Primary = "\2STR\2INT\2WIT\2DEX\2CHA\2GRT\2STR_PERM\2INT_PERM\2WIT_PERM\2DEX_PERM\2CHA_PERM\2GRT_PERM" --6 primary stats
 	Secondary = "\2TO_HIT\2DODGE\2BLOCK\2RESIST_PHYSICAL\2RESIST_MAGICAL\2BONUS_PHYSICAL\2BONUS_MAGICAL\2BONUS_HEALING" --the secondary stats
 	Skills = "\2BATTLE_EXP\2EMPIRE_EXP\2HIGH_SORCERY_EXP\2NATURAL_MAGIC_EXP\2STEALTH_EXP\2SURVIVAL_EXP\2TRADE_EXP\2VAMPIRE_EXP"
@@ -1732,7 +1768,11 @@ function OnPluginTelnetSubnegotiation (type, data)
 
     -- redraw the spell affect icons
     draw_affects ()
-    
+	
+	if msdp["DOTS"] ~= nil then
+      unpack_array(msdp["DOTS"])
+    end
+	
     Redraw()
 
   end -- if
