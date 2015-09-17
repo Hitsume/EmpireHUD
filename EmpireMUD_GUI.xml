@@ -2,18 +2,15 @@
 <!DOCTYPE muclient>
 <!-- TODO
 
-[/ooc Khufu]: I would show dots as affects with icon, duration, and "x3" for stacks, then mouseover for name, type, damage
-sort cooldowns into shortest first
-add dots
-find a better place for affects
+enemy status window
 check cooldowns wrap in the right place
 icons for stats?
 very small windows cause the status bars to detach from the score window?
-show other levels
+
 -->
 
 <!-- MuClient version 4.51 -->
-<!-- Based heavily on KaVir's EmpireMUD GUI/EmpireHUD GUI for MUSHClient 4.51-->
+<!-- Based heavily on KaVir's Generic GUI for MUSHClient 4.51-->
 
 <muclient>
 <plugin
@@ -21,10 +18,10 @@ show other levels
    author="Hitsume"
    id="a0a8aa6fec64eaf933e2120a"
    language="Lua"
-   purpose="A MSDP-based GUI for EmpireMUD 2.8+"
+   purpose="A MSDP-based graphical interface for EmpireMUD 2.8+."
    date_written="2015-09-16 07:45:00"
    requires="4.51"
-   version="0.9"
+   version="1.0"
    >
 
 </plugin>
@@ -509,6 +506,7 @@ function create_layout ()
                 0x000000))  -- background colour
   --add hotspots
   WindowAddHotspot(score_window, "hs_terr", 0, 0, 1, 1, "", "", "", "", "", "Territory", 12, 0);
+  WindowAddHotspot(score_window, "hs_level", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
   WindowAddHotspot(score_window, "hs_str", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
   WindowAddHotspot(score_window, "hs_dex", 0, 0, 1, 1, "", "", "", "", "", "Dexterity", 12, 0);
   WindowAddHotspot(score_window, "hs_int", 0, 0, 1, 1, "", "", "", "", "", "Intelligence", 12, 0);
@@ -1044,6 +1042,12 @@ function draw_score ()
   end
   y_offset = y_offset + territory_height/2
 --  text_line = 'Level '..msdp["LEVEL"]..' '..msdp["RACE"]..' '..msdp["CLASS"]
+  WindowMoveHotspot(score_window, "hs_level", 0, y_offset, score_width, y_offset+10)
+  if msdp["LEVEL"] and msdp["SKILL_LEVEL"] and msdp["GEAR_LEVEL"] and msdp["CRAFTING_LEVEL"] then
+    local tooltip = "Combat ["..msdp["LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..msdp["GEAR_LEVEL"].." (gear)\n"
+	tooltip = tooltip.."Crafting ["..msdp["CRAFTING_LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..(tonumber(msdp["CRAFTING_LEVEL"])-tonumber(msdp["SKILL_LEVEL"])).." (gear)"
+    WindowHotspotTooltip(score_window, "hs_level", tooltip)
+  end
   text_line = 'Level '..msdp["LEVEL"]..' '..msdp["CLASS"]
   outlined_text (colourGold, score_window, text_line, 10, 5, y_offset, score_width)
 
@@ -1199,6 +1203,15 @@ function draw_score ()
   local skills_fancy = {"Battle", "Empire", "High Sorcery", "Natural Magic", "Stealth", "Survival", "Trade", "Vampire"}
   local sk
   local index
+  if msdp["BONUS_EXP"] and tonumber(msdp["BONUS_EXP"]) > 0 then
+    local size = 10
+    draw_mini_bar (0xAAAA00, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, (score_width-xpbar_width)/2, size, msdp["BONUS_EXP"], 15)
+	outlined_text (colourSilver, score_window, msdp["BONUS_EXP"], size-4, 27, y_offset-(size-10)/2, 0, true)	
+	outlined_text (colourSilver, score_window, "Bonus experience", size-4, 33, y_offset-(size-10)/2, 0)
+	outlined_text (colourSilver, score_window, math.ceil(tonumber(msdp["BONUS_EXP"]/15)*100-0.5).."%", size-4, score_width-3, y_offset-(size-10)/2, 0, true)
+    --draw_xp_bar ("Bonus experience", 0xAAAA00, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, msdp["BONUS_EXP"], 15, msdp["BONUS_EXP"])
+	y_offset = y_offset + size+2
+  end
   for index, sk in ipairs(skills) do
     if msdp[sk.."_EXP"] ~= nil and msdp[sk.."_LEVEL"] ~= nil then
       if tonumber(msdp[sk.."_LEVEL"])>0 or tonumber(msdp[sk.."_EXP"])>0 then
@@ -1844,7 +1857,7 @@ function OnPluginTelnetRequest (neg_type, data)
   elseif neg_type == MSDP and data == "SENT_DO" then
     -- IAC SB MSDP response IAC SE 
     -- Split up for readability...
-	Basic = "\2CHARACTER_NAME\2CLASS\2LEVEL\2ROOM\2AFFECTS\2COOLDOWNS\2DOTS" --name class level exits affects
+	Basic = "\2CHARACTER_NAME\2CLASS\2LEVEL\2SKILL_LEVEL\2GEAR_LEVEL\2CRAFTING_LEVEL\2BONUS_EXP\2ROOM\2AFFECTS\2COOLDOWNS\2DOTS" --name class level exits affects
 	Primary = "\2STR\2INT\2WIT\2DEX\2CHA\2GRT\2STR_PERM\2INT_PERM\2WIT_PERM\2DEX_PERM\2CHA_PERM\2GRT_PERM" --6 primary stats
 	Secondary = "\2TO_HIT\2DODGE\2BLOCK\2RESIST_PHYSICAL\2RESIST_MAGICAL\2BONUS_PHYSICAL\2BONUS_MAGICAL\2BONUS_HEALING" --the secondary stats
 	Skills = "\2BATTLE_EXP\2EMPIRE_EXP\2HIGH_SORCERY_EXP\2NATURAL_MAGIC_EXP\2STEALTH_EXP\2SURVIVAL_EXP\2TRADE_EXP\2VAMPIRE_EXP"
