@@ -62,6 +62,7 @@ local mana_window = "mana_bar"  -- miniwindow ID
 local movement_window = "movement_bar"  -- miniwindow ID
 local affect_window_prefix = "affect_window_" --miniwindow ID
 local cooldown_window_prefix = "cooldown_window_" --miniwindow ID
+local dot_window_prefix = "dot_window_" --miniwindow ID
 local blood_window = "blood_bar"  -- miniwindow ID
 local gui_on = true
 local msdp = {}
@@ -138,6 +139,11 @@ function gui_hide (name, line, wildcards)
   while status and i<256 do
 --    status, error = pcall(WindowShow(affect_window_prefix..i, false))
     error = WindowShow(cooldown_window_prefix..i, false)
+    i=i+1
+  end
+  while status and i<256 do
+--    status, error = pcall(WindowShow(affect_window_prefix..i, false))
+    error = WindowShow(dot_window_prefix..i, false)
     i=i+1
   end
   SetBackgroundImage("", 0)
@@ -1226,7 +1232,7 @@ function draw_score ()
   right = GetInfo (281) + right_offset
   bottom = GetInfo (280) + bottom_offset
   draw_cooldowns(right+34, top+y_offset+11)
-
+  draw_dots(right+34, top+y_offset+11+32)
 end -- draw_score
 
 
@@ -1260,6 +1266,14 @@ function split_nested_arrays (msdp_data)
   return data
 end
 
+function filter(input) --turns specific telnet codes into numbers - debug use only
+  input = string.gsub(input,"\1","|")
+  input = string.gsub(input,"\2","=")
+  input = string.gsub(input,"\3","{")
+  input = string.gsub(input,"\4","}")
+  return input
+end
+
 function unpack_array(msdp_data)
   --Unpack an array of the form \1VAR_NAME\2VAR_VALUE\1VAR_NAME\2VAR_VALUE etc.
   --Assumes the leading \1NAME\2\3 and trailing \4 are already gone but (hopefully) doesn't rely on it
@@ -1280,10 +1294,10 @@ function unpack_array(msdp_data)
   local depth = 0
   local add = false
   local enable_debug = false
-  if enable_debug then Note(msdp_data) end
+  local char = ""
+  if enable_debug then Note(filter(msdp_data)) end
   while position<=string.len(msdp_data) do
-
-    local char = string.sub(msdp_data, position, position)
+    char = string.sub(msdp_data, position, position)
 	if char == '\1' and depth==0 then
 	  if enable_debug then Note("Hit 1. End of: "..str) end
 	  if is_value then
@@ -1326,8 +1340,7 @@ function unpack_array(msdp_data)
 	  end
 	  str = ""
 	else
-	  if is_key and enable_debug then Tell("k") elseif is_value and enable_debug then Tell("v") end
-      if enable_debug then Note(str.."+="..char) end
+	  --if is_key and enable_debug then Tell("k") elseif is_value and enable_debug then Tell("v") end
 	  str = str..char
 	end
 	if add then
@@ -1336,6 +1349,9 @@ function unpack_array(msdp_data)
 	  else
 	    if enable_debug then Note("Added "..key..": not string") end
       end
+	  if data[key] ~= nil then
+	    key = key .." (2)"
+	  end
 	  data[key] = value
 	  key = ""
 	  value = ""
@@ -1398,6 +1414,8 @@ function init_affects (data)
     AffectMax = index
   end -- if
 end --function
+
+
 
 local CooldownName = {}
 local CooldownDuration = {}
@@ -1499,6 +1517,106 @@ function affect_click(hotspot_id)
 	CooldownMode[id] = affect_mode_switch(CooldownMode[i])
   end
 end
+
+local dot_max = 0
+local dots = {}
+
+function draw_dots (startx, starty)
+
+  if dots == nil or dots == "None" or dots == "" then
+    for i=1,dot_max,1 do
+      WindowShow (dot_window_prefix..i, false)
+    end -- for
+    dot_max = 0
+    return
+  end -- if
+  
+  dots = unpack_array(msdp["DOTS"])
+
+  offset_x = 0
+  offset_y = 0
+  local i = 0
+  for k,v in pairs(dots) do--	    (DURATION, TYPE, DAMAGE, STACKS)
+    i = i + 1
+    if k ~= nil then
+      win = dot_window_prefix..i
+      dot = "dot_"..i
+	  if v["STACKS"]==nil then Note("Stacks is nil for dot "..k) v["STACKS"]="1" end
+      -- draw the icons left to right, top to bottom
+      if i > 1 then
+        if offset_x == 0 then
+          offset_x = 36
+        elseif offset_x == 36 then
+          offset_x = 72
+        elseif offset_x == 72 then
+          offset_x = 108
+        else
+          offset_x = 0
+          offset_y = offset_y + 36
+        end -- if
+      end -- if
+
+      colour = colourGold
+
+      -- make a miniwindow under the text
+      check (WindowCreate (win,   -- window ID
+                    startx+offset_x,  -- left, GetInfo(281)-320-39
+                    starty+offset_y, -- top, 73
+                    34,           -- width
+                    34,           -- depth
+                    12,           -- center it (ignored anyway) 
+                    2,            -- draw underneath (1) + absolute location (2)
+                    colourBlack))      -- background colour
+      WindowSetZOrder (win, 21)
+      -- load the icon
+      if WindowLoadImage (win, dot, GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/affects/" .. k .. ".png") == eOK then
+        check (WindowDrawImage (win, dot, 1, 1, 33, 33, 2))  -- exact name
+	  elseif WindowLoadImage (win, dot, GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/affects/" .. v["TYPE"] .. ".png") == eOK then
+        check (WindowDrawImage (win, dot, 1, 1, 33, 33, 2))  -- type (physical, poison etc.)
+      elseif WindowLoadImage (win, dot, GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/affects/default.png") == eOK then
+        check (WindowDrawImage (win, dot, 1, 1, 33, 33, 2))  -- draw the default affect icon instead
+      else -- even the default spell icon is missing
+        Note( "Missing spell icons.")
+        return
+      end -- if
+	  
+      if tonumber(v["DURATION"]) < 10 then --1 digit
+        offset = 18
+      elseif tonumber(v["DURATION"]) < 60 then --2 digits
+        offset = 22
+      elseif tonumber(v["DURATION"]) < 600 then --3 digits
+	    offset = 26
+      else -- 4 digits
+        offset = 30
+      end -- if
+
+      if tonumber(v["DURATION"]) < 0 then
+        -- draw an infinity symbol
+        outlined_text (colour, win, "O", 6, 4, 21, 0)
+        outlined_text (colour, win, "O", 6, 9, 21, 0)
+        -- go over the first 'O' again, removing the outline from the second 'O'
+        WindowFont(win,'f','Times New Roman',6,1,0,0,0)
+        WindowText(win,'f',"O",4,21,0,0,colour,0)
+      else -- write the duration
+        outlined_text (colour, win, seconds_to_minutes(tonumber(v["DURATION"])), 6, offset, 21, 0, true) --4->32
+      end -- if
+      if tonumber(v["STACKS"])>0 then
+	    Note("drew stacks")
+	    outlined_text (colour, win, "x"..v["STACKS"], 6, 3, 3, 0)
+	  end
+      -- show the window
+	  if gui_on then
+        WindowShow (win, true)
+      end
+
+      -- create a hotspot over the timer
+	  local tooltip = k.."("..v["TYPE"]..")\n"..v["DAMAGE"].." damage ("..(tonumber(v["DAMAGE"])/5).." per second)."
+      WindowAddHotspot(win, "hs_dot_"..i, 0, 0, 34, 34, "", "", "", "", "AffectMouseUp", tooltip, 1, 0)
+    end -- if
+  end -- for
+  dot_max = i
+end --function
+
 
 function draw_cooldowns (startx, starty)
   cooldowns = msdp["COOLDOWNS"]
@@ -1856,10 +1974,11 @@ function OnPluginTelnetSubnegotiation (type, data)
     -- redraw the spell affect icons
     draw_affects ()
 	
-	if msdp["DOTS"] ~= nil and msdp["DOTS"] ~= "" then
+ --[[	if msdp["DOTS"] ~= nil and msdp["DOTS"] ~= "" then
+     dots = unpack_array(msdp["DOTS"])
 	  Note("DOTS: "..msdp["DOTS"])
 	  Note("Unpacking DOTS")
-      dots = unpack_array(msdp["DOTS"])
+      
 	  Note("Unpacked DOTS. Result:")
 	  for u, i in pairs(dots) do
 	    Note(u)
@@ -1867,7 +1986,7 @@ function OnPluginTelnetSubnegotiation (type, data)
 		  Note(k..": "..v)
 		end
 	  end
-    end
+    end]]
 	
     Redraw()
 
