@@ -842,7 +842,7 @@ function draw_energy_bars ()
     max_blood = 0
   end -- if
   local vamp = unpack_array(mdsp["VAMPIRE"])
-  if current_blood ~= nil and max_blood ~= nil and (vamp["LEVEL"] ~= nil and vamp["LEVEL"] ~= 0) or vamp["EXP"] ~= nil and vamp["EXP"] ~= 0) then
+  if current_blood ~= nil and max_blood ~= nil and ((vamp["LEVEL"] ~= nil and vamp["LEVEL"] ~= 0) or (vamp["EXP"] ~= nil and vamp["EXP"] ~= 0)) then
     local type = "Blood"
     colour = 0x0000CC
     colour2 = 0x000033
