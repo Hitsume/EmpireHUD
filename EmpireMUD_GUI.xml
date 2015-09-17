@@ -852,7 +852,7 @@ function draw_energy_bars ()
   --If not a vampire, hide blood
   no_blood = true
   WindowShow(blood_window, false) --hide the blood bar
-  if msdp["VAMPIRE_EXP"] ~= nil or msdp["VAMPIRE_LEVEL"] ~= nil then
+  if msdp["VAMPIRE_EXP"] ~= nil and msdp["VAMPIRE_LEVEL"] ~= nil then
     if tonumber(msdp["VAMPIRE_LEVEL"])>0 or tonumber(msdp["VAMPIRE_EXP"])>0 then
       WindowShow(blood_window, true)
 	  no_blood = false --used to position the rest of the score
