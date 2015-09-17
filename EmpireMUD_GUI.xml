@@ -8,6 +8,8 @@ add dots
 find a better place for affects
 check cooldowns wrap in the right place
 icons for stats?
+very small windows cause the status bars to detach from the score window?
+show other levels
 -->
 
 <!-- MuClient version 4.51 -->
@@ -1011,7 +1013,7 @@ function draw_score ()
   end
   y_offset = y_offset + territory_height/2
   if msdp["EMPIRE_TERRITORY_OUTSIDE"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"] ~= nil then
-    draw_mini_bar(0xaaaaaa, 0x333333, score_window, 0, y_offset, score_width, 3, msdp["EMPIRE_TERRITORY_OUTSIDE"], msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"])
+    draw_mini_bar(0xaaaaaa, 0x333333, score_window, 0, y_offset, score_width, territory_height/2, msdp["EMPIRE_TERRITORY_OUTSIDE"], msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"])
   end
   if msdp["EMPIRE_TERRITORY"] ~= nil and msdp["EMPIRE_TERRITORY_MAX"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"] ~= nil then
     local territory = tonumber(msdp["EMPIRE_TERRITORY"])
@@ -1310,6 +1312,7 @@ end --function
 
 local CooldownName = {}
 local CooldownDuration = {}
+local CooldownMode = {}
 local CooldownMax = 0
   
 function init_cooldowns (data)
