@@ -1346,8 +1346,13 @@ function unpack_array(msdp_data)
 	  else
 	    if enable_debug then Note("Added "..key..": not string") end
       end
-	  if data[key] ~= nil then
-	    key = key .." (2)"
+	  if data[key] ~= nil then --stops same-named fields from overwriting: common with script dots
+        for disamb = 1, 256 do
+		  if data[key.." ("..disamb..")"] == nil then
+	        key = key .." ("..disamb..")"
+			break
+	      end
+	    end
 	  end
 	  data[key] = value
 	  key = ""
