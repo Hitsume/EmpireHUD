@@ -1250,16 +1250,15 @@ function draw_score ()
       y_offset = y_offset + spacing
 	end
   end
+  no_blood = true
+  WindowShow(blood_window, false) --hide the blood bar
   if msdp["VAMPIRE_EXP"] ~= nil and msdp["VAMPIRE_LEVEL"] ~= nil then
     if tonumber(msdp["VAMPIRE_LEVEL"])>0 or tonumber(msdp["VAMPIRE_EXP"])>0 then
       if max_level(msdp["VAMPIRE_LEVEL"]) then colour = colourMax1 colour2 = colourMax2 else colour = colourNormal1 colour2 = colourNormal2 end
       draw_xp_bar ("Vampire", colour, colour2, score_window, (score_width-xpbar_width)/2, y_offset, msdp["VAMPIRE_EXP"], 100, msdp["VAMPIRE_LEVEL"])
       y_offset = y_offset + spacing
 	  WindowShow(blood_window, true) --just in case
-	  no_blood = false
-	else
-	  WindowShow(blood_window, false) --hide the blood bar
-	  no_blood = true
+	  no_blood = false --make sure we're not hiding the blood bar
     end
   end
   right = GetInfo (281) + right_offset
