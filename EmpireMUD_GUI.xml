@@ -1001,14 +1001,15 @@ function draw_score ()
 
   y_offset = y_offset + 18
   if msdp["EMPIRE_NAME"] ~= nil and msdp["EMPIRE_RANK"] ~= nil then
-    outlined_text (colourSilver, score_window, '<'..msdp["EMPIRE_RANK"]..' of '..msdp["EMPIRE_NAME"]..'>', 8, 0, y_offset, score_width)
+    outlined_text (colourSilver, score_window, '<'..msdp["EMPIRE_RANK"]..' of '..msdp["EMPIRE_NAME"]..'>', 7, 0, y_offset, score_width)
   end -- if
-  y_offset = y_offset + 16
-  WindowMoveHotspot(score_window, "hs_terr", 0, y_offset, score_width, y_offset+6)
+  y_offset = y_offset + 14
+  local territory_height = 8
+  WindowMoveHotspot(score_window, "hs_terr", 0, y_offset, score_width, y_offset+territory_height)
   if msdp["EMPIRE_TERRITORY"] ~= nil and msdp["EMPIRE_TERRITORY_MAX"] ~= nil then
-    draw_mini_bar(0xaa00aa, 0x330033, score_window, 0, y_offset, score_width, 3, msdp["EMPIRE_TERRITORY"], msdp["EMPIRE_TERRITORY_MAX"])
+    draw_mini_bar(0xaa00aa, 0x330033, score_window, 0, y_offset, score_width, territory_height/2, msdp["EMPIRE_TERRITORY"], msdp["EMPIRE_TERRITORY_MAX"])
   end
-  y_offset = y_offset + 3
+  y_offset = y_offset + territory_height/2
   if msdp["EMPIRE_TERRITORY_OUTSIDE"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"] ~= nil then
     draw_mini_bar(0xaaaaaa, 0x333333, score_window, 0, y_offset, score_width, 3, msdp["EMPIRE_TERRITORY_OUTSIDE"], msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"])
   end
@@ -1023,7 +1024,7 @@ function draw_score ()
 	local tooltip = tooltip.."Outside territory: "..outside.."/"..maxoutside.." ("..math.floor(outside/maxoutside*100).."%) - "..outsidefree.." left."
     WindowHotspotTooltip(score_window, "hs_terr", tooltip)
   end
-  y_offset = y_offset + 3
+  y_offset = y_offset + territory_height/2
 --  text_line = 'Level '..msdp["LEVEL"]..' '..msdp["RACE"]..' '..msdp["CLASS"]
   text_line = 'Level '..msdp["LEVEL"]..' '..msdp["CLASS"]
   outlined_text (colourGold, score_window, text_line, 10, 5, y_offset, score_width)
