@@ -839,8 +839,8 @@ function draw_energy_bars ()
     current_blood = 0
     max_blood = 0
   end -- if
-  local vamp = unpack_array(mdsp["VAMPIRE"])
-  if current_blood ~= nil and max_blood ~= nil and ((vamp["LEVEL"] ~= nil and vamp["LEVEL"] ~= 0) or (vamp["EXP"] ~= nil and vamp["EXP"] ~= 0)) then
+  local vamp = unpack_array(msdp["VAMPIRE"])
+  if current_blood ~= nil and max_blood ~= nil and vamp ~= nil and ((vamp["LEVEL"] ~= nil and vamp["LEVEL"] ~= 0) or (vamp["EXP"] ~= nil and vamp["EXP"] ~= 0)) then
     local type = "Blood"
     colour = 0x0000CC
     colour2 = 0x000033
@@ -1213,8 +1213,10 @@ function draw_score ()
 	y_offset = y_offset + size+2
   end
   for index, sk in ipairs(skills) do
+    if msdp[sk] ~= nil then Note(msdp[sk]) else Note("mdsp["..sk.."] = nil") end
     skill_data = unpack_array(msdp[sk])
-    if skill_data["EXP"] ~= nil and skill_data["LEVEL"] ~= nil then
+	if skill_data ~= nil then for k,v in pairs(skill_data) do Note(k..": "..v) end else Note("no skill data for "..sk) end
+    if skill_data ~= nil and skill_data["EXP"] ~= nil and skill_data["LEVEL"] ~= nil then
       if tonumber(skill_data["LEVEL"])>0 or tonumber(skill_data["EXP"])>0 then
         if max_level(skill_data["LEVEL"]) then colour = colourMax1 colour2 = colourMax2 else colour = colourNormal1 colour2 = colourNormal2 end
         draw_xp_bar (skills_fancy[index], colour, colour2, score_window, (score_width-xpbar_width)/2, y_offset, skill_data["EXP"], 100, skill_data["LEVEL"])
@@ -1863,9 +1865,10 @@ function OnPluginTelnetRequest (neg_type, data)
 	Secondary = "\2TO_HIT\2DODGE\2BLOCK\2RESIST_PHYSICAL\2RESIST_MAGICAL\2BONUS_PHYSICAL\2BONUS_MAGICAL\2BONUS_HEALING" --the secondary stats
 	local sk = {"BATTLE","EMPIRE","HIGH_SORCERY","NATURAL_MAGIC","STEALTH","SURVIVAL","TRADE","VAMPIRE"}
 	local Skills = ""
-	for _, v in sk do
-	  Skills = "\2"..v
+	for _, v in pairs(sk) do
+	  Skills = Skills.."\2"..v
 	end
+	Note(Skills)
 	Bars = "\2HEALTH_MAX\2HEALTH_REGEN\2HEALTH\2MANA_MAX\2MANA_REGEN\2MANA\2MOVEMENT_MAX\2MOVEMENT_REGEN\2MOVEMENT\2BLOOD\2BLOOD_MAX\2BLOOD_UPKEEP" --health mana move blood
 	Other = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX\2OPPONENT_HEALTH" --more stuff
 	
