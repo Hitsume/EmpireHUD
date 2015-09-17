@@ -141,6 +141,7 @@ function gui_hide (name, line, wildcards)
     error = WindowShow(cooldown_window_prefix..i, false)
     i=i+1
   end
+  i = 1
   while status and i<256 do
 --    status, error = pcall(WindowShow(affect_window_prefix..i, false))
     error = WindowShow(dot_window_prefix..i, false)
@@ -160,7 +161,7 @@ function gui_hide (name, line, wildcards)
   ColourNote ("yellow", "", "GUI now hidden. Type 'gui show' to show it.")
 end --gui_hide
 
-left = 25 -- was 175
+left = 20 -- was 175
 top = 73
 right_offset = -320
 bottom_offset = -20
@@ -1192,8 +1193,11 @@ function draw_score ()
   outlined_text (colourGold, score_window, "Heal:", 9, score_width-3, y_offset, 0, true)
   if msdp["BONUS_PHYSICAL"] ~= nil and msdp["BONUS_MAGICAL"] ~= nil and msdp["BONUS_HEALING"] ~= nil then
     --outlined_text (colourSilver, score_window, msdp["BONUS_PHYSICAL"]..'p '..msdp["BONUS_MAGICAL"]..'m '..msdp["BONUS_HEALING"]..'h', 9, x_offset, 20+y_offset, 0)
+    WindowMoveHotspot(score_window, "hs_phys", x_offset, y_offset, (score_width+x_offset*2)/3, y_offset+32)
     outlined_text (colourSilver, score_window, msdp["BONUS_PHYSICAL"], 9, x_offset+5, 20+y_offset, 0)
+    WindowMoveHotspot(score_window, "hs_magic", (score_width+x_offset*2)/3, y_offset, (score_width*2+x_offset)/3, y_offset+32)
 	outlined_text (colourSilver, score_window, msdp["BONUS_MAGICAL"], 9, x_offset, 20+y_offset, (score_width-5)-x_offset)
+    WindowMoveHotspot(score_window, "hs_heal", (score_width*2+x_offset)/3, y_offset, score_width, y_offset+32)
     outlined_text (colourSilver, score_window, msdp["BONUS_HEALING"], 9, score_width-8, 20+y_offset, 0, true)
   end -- if
   
@@ -1216,7 +1220,7 @@ function draw_score ()
   colourMax1 = 0x00AA00
   colourMax2 = 0x003300
   local spacing = xpbar_height+2 + 0
-  local skills = {"BATTLE", "EMPIRE","HIGH_SORCERY","NATURAL_MAGIC","STEALTH","SURVIVAL","TRADE", "VAMPIRE"}
+  local skills = {"BATTLE", "EMPIRE","HIGH_SORCERY","NATURAL_MAGIC","STEALTH","SURVIVAL", "TRADE", "VAMPIRE"}
   local skills_fancy = {"Battle", "Empire", "High Sorcery", "Natural Magic", "Stealth", "Survival", "Trade", "Vampire"}
   local sk
   local index
@@ -1232,7 +1236,7 @@ function draw_score ()
   right = GetInfo (281) + right_offset
   bottom = GetInfo (280) + bottom_offset
   draw_cooldowns(right+34, top+y_offset+11)
-  draw_dots(right+34, top+y_offset+11+32)
+
 end -- draw_score
 
 
@@ -1281,8 +1285,10 @@ function unpack_array(msdp_data)
   --\1NAME\2\3\1NAME\2VALUE\4 will return {NAME, {NAME, VALUE}}
   --\1NAME\2\3\1NAME\2\3\1PROPERTY\2VALUE\4\4 will return {NAME, {NAME, {PROPERTY, VALUE}}}
   --
+  if msdp_data == nil or msdp_data == "" then return nil end
   if string.sub(msdp_data, 1, 1) ~= "\1" then
-    msdp_data = "\1"..msdp_data --sigh
+    msdp_data = "\1"..msdp_data --this should be here in the first place, it's what bIgnore removes
+	--but affects assumes it's not
   end
   local position = 1
   local data = {}
@@ -1298,8 +1304,9 @@ function unpack_array(msdp_data)
   if enable_debug then Note(filter(msdp_data)) end
   while position<=string.len(msdp_data) do
     char = string.sub(msdp_data, position, position)
-	if char == '\1' and depth==0 then
+	if (char == '\1' or (position==string.len(msdp_data) and is_value)) and depth==0 then
 	  if enable_debug then Note("Hit 1. End of: "..str) end
+	  if position==string.len(msdp_data) then str = str..char if enable_debug then Note("Hit end of string.") end end
 	  if is_value then
 	    value = str
 		if key ~= "" and value ~= "" then
@@ -1311,8 +1318,9 @@ function unpack_array(msdp_data)
 	  str = ""
 	  is_value = false
 	  is_key = true
-	elseif char == '\2' and depth==0 then
-	  if enable_debug then Note("Hit 2. End of: "..str) end
+	elseif (char == '\2' or (position==string.len(msdp_data) and is_key)) and depth==0 then
+	  if enable_debug and char == '\2' then Note("Hit 2. End of: "..str) end
+	  if position==string.len(msdp_data) then str = str..char if enable_debug then Note("Hit end of string.") end end
 	  if is_key then
 	    key = str
 		if key ~= "" and value ~= "" then
@@ -1343,6 +1351,7 @@ function unpack_array(msdp_data)
 	  --if is_key and enable_debug then Tell("k") elseif is_value and enable_debug then Tell("v") end
 	  str = str..char
 	end
+	  
 	if add then
 	  if type(value) == "string" then
 	    if enable_debug then Note("Added"..key..":"..value) end
@@ -1522,21 +1531,19 @@ local dot_max = 0
 local dots = {}
 
 function draw_dots (startx, starty)
-
-  if dots == nil or dots == "None" or dots == "" then
+  dots = unpack_array(msdp["DOTS"])
+  if dots == nil or dots == "None" or dots == {} then
     for i=1,dot_max,1 do
       WindowShow (dot_window_prefix..i, false)
     end -- for
     dot_max = 0
     return
   end -- if
-  
-  dots = unpack_array(msdp["DOTS"])
-
   offset_x = 0
   offset_y = 0
   local i = 0
   for k,v in pairs(dots) do--	    (DURATION, TYPE, DAMAGE, STACKS)
+    Note(k)
     i = i + 1
     if k ~= nil then
       win = dot_window_prefix..i
@@ -1544,16 +1551,16 @@ function draw_dots (startx, starty)
 	  if v["STACKS"]==nil then Note("Stacks is nil for dot "..k) v["STACKS"]="1" end
       -- draw the icons left to right, top to bottom
       if i > 1 then
-        if offset_x == 0 then
+--[[        if offset_x == 0 then
           offset_x = 36
         elseif offset_x == 36 then
           offset_x = 72
         elseif offset_x == 72 then
           offset_x = 108
         else
-          offset_x = 0
+          offset_x = 0]]
           offset_y = offset_y + 36
-        end -- if
+ --       end -- if
       end -- if
 
       colour = colourGold
@@ -1716,13 +1723,15 @@ function draw_cooldowns (startx, starty)
 end --function
 
 function draw_affects ()
-
+  local base_pos_x = GetInfo(281)-320-5
+  local base_pos_y = 73+10
   affects = msdp["AFFECTS"]
   if affects == nil or affects == "None" then
     for i=1,AffectMax,1 do
       WindowShow (affect_window_prefix..i, false)
     end -- for
     AffectMax = 0
+    draw_dots(base_pos_x, base_pos_y)
     return
   end -- if
 
@@ -1762,8 +1771,8 @@ function draw_affects ()
 
       -- make a miniwindow under the text
       check (WindowCreate (win,   -- window ID
-                    GetInfo(281)-320-5+offset_x,  -- left, 14
-                    73+10+offset_y, -- top, 383
+                    base_pos_x+offset_x,  -- left, 14
+                    base_pos_y+offset_y, -- top, 383
                     34,           -- width
                     34,           -- depth
                     12,           -- center it (ignored anyway) 
@@ -1808,7 +1817,7 @@ function draw_affects ()
       WindowAddHotspot(win, "hs_affect_"..i, 0, 0, 34, 34, "", "", "", "", "", AffectName[i], 1, 0)
     end -- if
   end -- for
-
+  draw_dots(base_pos_x, base_pos_y + offset_y)
 end -- draw_affects
 
 
@@ -1973,6 +1982,7 @@ function OnPluginTelnetSubnegotiation (type, data)
 
     -- redraw the spell affect icons
     draw_affects ()
+	
 	
  --[[	if msdp["DOTS"] ~= nil and msdp["DOTS"] ~= "" then
      dots = unpack_array(msdp["DOTS"])
