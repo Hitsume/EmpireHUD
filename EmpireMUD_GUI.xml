@@ -2,18 +2,15 @@
 <!DOCTYPE muclient>
 <!-- TODO
 
-[/ooc Khufu]: I would show dots as affects with icon, duration, and "x3" for stacks, then mouseover for name, type, damage
-sort cooldowns into shortest first
-add dots
-find a better place for affects
+enemy status window
 check cooldowns wrap in the right place
 icons for stats?
 very small windows cause the status bars to detach from the score window?
-show other levels
+
 -->
 
 <!-- MuClient version 4.51 -->
-<!-- Based heavily on KaVir's EmpireMUD GUI/EmpireHUD GUI for MUSHClient 4.51-->
+<!-- Based heavily on KaVir's Generic GUI for MUSHClient 4.51-->
 
 <muclient>
 <plugin
@@ -21,10 +18,10 @@ show other levels
    author="Hitsume"
    id="a0a8aa6fec64eaf933e2120a"
    language="Lua"
-   purpose="A MSDP-based GUI for EmpireMUD 2.8+"
+   purpose="A MSDP-based graphical interface for EmpireMUD 2.8+."
    date_written="2015-09-16 07:45:00"
    requires="4.51"
-   version="0.9"
+   version="1.0"
    >
 
 </plugin>
@@ -509,6 +506,7 @@ function create_layout ()
                 0x000000))  -- background colour
   --add hotspots
   WindowAddHotspot(score_window, "hs_terr", 0, 0, 1, 1, "", "", "", "", "", "Territory", 12, 0);
+  WindowAddHotspot(score_window, "hs_level", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
   WindowAddHotspot(score_window, "hs_str", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
   WindowAddHotspot(score_window, "hs_dex", 0, 0, 1, 1, "", "", "", "", "", "Dexterity", 12, 0);
   WindowAddHotspot(score_window, "hs_int", 0, 0, 1, 1, "", "", "", "", "", "Intelligence", 12, 0);
@@ -1044,6 +1042,12 @@ function draw_score ()
   end
   y_offset = y_offset + territory_height/2
 --  text_line = 'Level '..msdp["LEVEL"]..' '..msdp["RACE"]..' '..msdp["CLASS"]
+  WindowMoveHotspot(score_window, "hs_level", 0, y_offset, score_width, y_offset+10)
+  if msdp["LEVEL"] and msdp["SKILL_LEVEL"] and msdp["GEAR_LEVEL"] and msdp["CRAFTING_LEVEL"] then
+    local tooltip = "Combat ["..msdp["LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..msdp["GEAR_LEVEL"].." (gear)\n"
+	tooltip = tooltip.."Crafting ["..msdp["CRAFTING_LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..(tonumber(msdp["CRAFTING_LEVEL"])-tonumber(msdp["SKILL_LEVEL"])).." (gear)"
+    WindowHotspotTooltip(score_window, "hs_level", tooltip)
+  end
   text_line = 'Level '..msdp["LEVEL"]..' '..msdp["CLASS"]
   outlined_text (colourGold, score_window, text_line, 10, 5, y_offset, score_width)
 
@@ -1053,18 +1057,37 @@ function draw_score ()
     y_offset = y_offset + 20
   end
   
-  outlined_text (colourGold, score_window, "Str:", 9, 5, y_offset, 0)
-  WindowMoveHotspot(score_window, "hs_str", 0, y_offset, x_offset-40, y_offset+12)
-  WindowHotspotTooltip(score_window, "hs_str", "Not working properly.")
-  if msdp["STR"] ~= nil and msdp["STR_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_str", "Min: 1. Base: "..msdp["STR_PERM"]..". Max: 15.\nProviding +"..msdp["STR"].." physical damage.")
-    colour = colourSilver
-    --convert to numbers to allow comparison
-    str = tonumber(msdp["STR"])
-    str_perm = tonumber(msdp["STR_PERM"])
-    if str<str_perm then colour = colourRed elseif str>str_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["STR"], 9, 70, y_offset, 0, true)
-  end -- if
+  draw_stat = function(stat)
+    local fancystat = string.upper(string.sub(stat, 1, 1))..string.lower(string.sub(stat, 2))
+	local lowerstat = string.lower(stat)
+	outlined_text (colourGold, score_window, fancystat..":", 9, 5, y_offset, 0)
+    WindowMoveHotspot(score_window, "hs_"..lowerstat, 0, y_offset, x_offset-40, y_offset+12)
+    WindowHotspotTooltip(score_window, "hs_"..lowerstat, "Not working properly.")
+    if msdp[stat] ~= nil and msdp[stat.."_PERM"] ~= nil then
+	  if stat == "STR" then
+         WindowHotspotTooltip(score_window, "hs_str", "Min: 1. Base: "..msdp["STR_PERM"]..". Max: 15.\nProviding +"..msdp["STR"].." physical damage.")
+	  elseif stat == "DEX" then
+         WindowHotspotTooltip(score_window, "hs_dex", "Min: 0. Base: "..msdp["DEX_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["DEX"])*5).." To-hit & Dodge.")
+	  elseif stat == "INT" then
+         WindowHotspotTooltip(score_window, "hs_int", "Min: 1. Base: "..msdp["INT_PERM"]..". Max: 15.\nProviding +"..msdp["INT"].." magical damage.")
+	  elseif stat == "WIT" then
+         WindowHotspotTooltip(score_window, "hs_wit", "Min: 0. Base: "..msdp["WIT_PERM"]..". Max: 15.\nProviding "..(tonumber(msdp["WIT"])*0.025*100).."% faster attack speed.")
+	  elseif stat == "CHA" then
+         WindowHotspotTooltip(score_window, "hs_cha", "Min: 1. Base: "..msdp["CHA_PERM"]..". Max: 15.")
+	  elseif stat == "GRT" then
+         WindowHotspotTooltip(score_window, "hs_grt", "Min: 0. Base: "..msdp["GRT_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["GRT"])*35).." territory.")
+	  end
+      colour = colourSilver
+      --convert to numbers to allow comparison
+      st = tonumber(msdp[stat])
+      st_perm = tonumber(msdp[stat.."_PERM"])
+      if st<st_perm then colour = colourRed elseif st>st_perm then colour = colourGreen end
+      outlined_text (colour, score_window, msdp[stat], 9, 70, y_offset, 0, true)
+    end -- if
+  end
+  
+
+  draw_stat("STR")
 
   outlined_text (colourGold, score_window, "To-hit:", 9, x_offset, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_tohit", x_offset, y_offset, score_width-40, y_offset+12)
@@ -1084,17 +1107,8 @@ function draw_score ()
   end -- if
 
   y_offset = y_offset + 20
-  outlined_text (colourGold, score_window, "Dex:", 9, 5, y_offset, 0)
-  WindowMoveHotspot(score_window, "hs_dex", 0, y_offset, x_offset-40, y_offset+12)
-  if msdp["DEX"] ~= nil and msdp["DEX_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_dex", "Min: 0. Base: "..msdp["DEX_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["DEX"])*5).." To-hit & Dodge.")
-    colour = colourSilver
-    --convert to numbers to allow comparison
-    dex = tonumber(msdp["DEX"])
-    dex_perm = tonumber(msdp["DEX_PERM"])
-    if dex<dex_perm then colour = colourRed elseif dex>dex_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["DEX"], 9, 70, y_offset, 0, true)
-  end -- if
+  
+  draw_stat("DEX")
 
   outlined_text (colourGold, score_window, "Dodge:", 9, x_offset, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_dodge", x_offset, y_offset, score_width-40, y_offset+12)
@@ -1102,10 +1116,10 @@ function draw_score ()
     if msdp["LEVEL"] ~= nil and msdp["DEX"] ~= nil and msdp["TO_HIT"] ~= nil then
       --calculate fun stats
       local tododge_self = math.min(95, math.max(0, tonumber(msdp["DODGE"])-tonumber(msdp["TO_HIT"])+100))
-      local trash_tohit = math.ceil(math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))+50
+      local trash_tohit = math.ceil(math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))-50
       local trash_dex = math.min(15, math.max(0, math.ceil(tonumber(msdp["LEVEL"])*20)))
       local tododge_trash = math.min(75, math.max(0, 5*(trash_dex-tonumber(msdp["DEX"]))+(tonumber(msdp["DODGE"])-trash_tohit)))
-      local boss_tohit = math.ceil((math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))*1.43)+50
+      local boss_tohit = math.ceil((math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))*1.43)-50
       local boss_dex = math.min(15, math.max(0, math.ceil(msdp["LEVEL"]*20*1.25+1.25+2)))
       local tododge_boss = math.min(75, math.max(0, 5*(boss_dex-tonumber(msdp["DEX"]))+(tonumber(msdp["DODGE"])-boss_tohit)))
       WindowHotspotTooltip(score_window, "hs_dodge", "Chance to dodge yourself: "..tododge_self.."%\nChance to dodge trash (your level): "..tododge_trash.."%\nChance to dodge boss (your level): "..tododge_boss.."%")
@@ -1114,17 +1128,7 @@ function draw_score ()
   end -- if
 
   y_offset = y_offset + 20
-  outlined_text (colourGold, score_window, "Int:", 9, 5, y_offset, 0)
-  WindowMoveHotspot(score_window, "hs_int", 0, y_offset, x_offset-40, y_offset+12)
-  if msdp["INT"] ~= nil and msdp["INT_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_int", "Min: 1. Base: "..msdp["INT_PERM"]..". Max: 15.\nProviding +"..msdp["INT"].." magical damage.")
-    colour = colourSilver
-    --convert to numbers to allow comparison
-    int = tonumber(msdp["INT"])
-    int_perm = tonumber(msdp["INT_PERM"])
-    if int<int_perm then colour = colourRed elseif int>int_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["INT"], 9, 70, y_offset, 0, true)
-  end -- if
+  draw_stat("INT")
 
   outlined_text (colourGold, score_window, "Block:", 9, x_offset, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_block", x_offset, y_offset, score_width-40, y_offset+12)
@@ -1141,16 +1145,7 @@ function draw_score ()
   end -- if
 
   y_offset = y_offset + 20
-  outlined_text (colourGold, score_window, "Wit:", 9, 5, y_offset, 0)
-  WindowMoveHotspot(score_window, "hs_wit", 0, y_offset, x_offset-40, y_offset+12)
-  if msdp["WIT"] ~= nil and msdp["WIT_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_wit", "Min: 0. Base: "..msdp["WIT_PERM"]..". Max: 15.\nProviding "..(tonumber(msdp["WIT"])*0.025*100).."% faster attack speed.")
-    colour = colourSilver
-    wit = tonumber(msdp["WIT"])
-    wit_perm = tonumber(msdp["WIT_PERM"])
-    if wit<wit_perm then colour = colourRed elseif wit>wit_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["WIT"], 9, 70, y_offset, 0, true)
-  end -- if
+  draw_stat("WIT")
   
   outlined_text (colourGold, score_window, "Resist: ", 9, x_offset, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_resist", x_offset, y_offset, score_width-40, y_offset+12)
@@ -1178,14 +1173,7 @@ function draw_score ()
   y_offset = y_offset + 20
   outlined_text (colourGold, score_window, "Cha:", 9, 5, y_offset, 0)
   WindowMoveHotspot(score_window, "hs_cha", 0, y_offset, x_offset-40, y_offset+12)
-  if msdp["CHA"] ~= nil and msdp["CHA_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_cha", "Min: 1. Base: "..msdp["CHA_PERM"]..". Max: 15.")
-    colour = colourSilver
-	cha = tonumber(msdp["CHA"])
-	cha_perm = tonumber(msdp["CHA_PERM"])
-    if cha<cha_perm then colour = colourRed elseif cha>cha_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["CHA"], 9, 70, y_offset, 0, true)
-  end -- if
+  draw_stat("CHA")
 
   outlined_text (colourGold, score_window, "+", 9, x_offset-15, y_offset, 0)
   outlined_text (colourGold, score_window, "Phys:", 9, x_offset, y_offset, 0)
@@ -1202,16 +1190,7 @@ function draw_score ()
   end -- if
   
   y_offset = y_offset + 20
-  outlined_text (colourGold, score_window, "Grt:", 9, 5, y_offset, 0)
-  WindowMoveHotspot(score_window, "hs_grt", 0, y_offset, x_offset-40, y_offset+12)
-  if msdp["GRT"] ~= nil and msdp["GRT_PERM"] ~= nil then
-    WindowHotspotTooltip(score_window, "hs_grt", "Min: 0. Base: "..msdp["GRT_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["GRT"])*35).." territory.")
-    colour = colourSilver
-	grt = tonumber(msdp["GRT"])
-	grt_perm = tonumber(msdp["GRT_PERM"])
-    if grt<grt_perm then colour = colourRed elseif grt>grt_perm then colour = colourGreen end
-    outlined_text (colour, score_window, msdp["GRT"], 9, 70, y_offset, 0, true)
-  end -- if
+  draw_stat("GRT")
   
   y_offset = y_offset + 20
   
@@ -1224,6 +1203,15 @@ function draw_score ()
   local skills_fancy = {"Battle", "Empire", "High Sorcery", "Natural Magic", "Stealth", "Survival", "Trade", "Vampire"}
   local sk
   local index
+  if msdp["BONUS_EXP"] and tonumber(msdp["BONUS_EXP"]) > 0 then
+    local size = 10
+    draw_mini_bar (0xAAAA00, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, (score_width-xpbar_width)/2, size, msdp["BONUS_EXP"], 15)
+	outlined_text (colourSilver, score_window, msdp["BONUS_EXP"], size-4, 27, y_offset-(size-10)/2, 0, true)	
+	outlined_text (colourSilver, score_window, "Bonus experience", size-4, 33, y_offset-(size-10)/2, 0)
+	outlined_text (colourSilver, score_window, math.ceil(tonumber(msdp["BONUS_EXP"]/15)*100-0.5).."%", size-4, score_width-3, y_offset-(size-10)/2, 0, true)
+    --draw_xp_bar ("Bonus experience", 0xAAAA00, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, msdp["BONUS_EXP"], 15, msdp["BONUS_EXP"])
+	y_offset = y_offset + size+2
+  end
   for index, sk in ipairs(skills) do
     skill_data = unpack_array(msdp[sk])
     if skill_data["EXP"] ~= nil and skill_data["LEVEL"] ~= nil then
@@ -1863,13 +1851,14 @@ end -- outlined_text
 -- MSDP negotiation
 local MSDP = 69
 
-function OnPluginTelnetRequest (type, data)
-  if type == MSDP and data == "WILL" then
+function OnPluginTelnetRequest (neg_type, data)
+  if neg_type == MSDP and data == "WILL" then
     using_msdp = true
     return true
-  elseif type == MSDP and data == "SENT_DO" then
+  elseif neg_type == MSDP and data == "SENT_DO" then
     -- IAC SB MSDP response IAC SE 
     -- Split up for readability...
+<<<<<<< HEAD
 	local Basic = "\2CHARACTER_NAME\2CLASS\2LEVEL\2ROOM_EXITS\2AFFECTS\2COOLDOWNS\2DOTS" --name class level exits affects
 	local Primary = "\2STR\2INT\2WIT\2DEX\2CHA\2GRT\2STR_PERM\2INT_PERM\2WIT_PERM\2DEX_PERM\2CHA_PERM\2GRT_PERM" --6 primary stats
 	local Secondary = "\2TO_HIT\2DODGE\2BLOCK\2RESIST_PHYSICAL\2RESIST_MAGICAL\2BONUS_PHYSICAL\2BONUS_MAGICAL\2BONUS_HEALING" --the secondary stats
@@ -1880,6 +1869,13 @@ function OnPluginTelnetRequest (type, data)
 	end
 	--Skills = "\2BATTLE_EXP\2EMPIRE_EXP\2HIGH_SORCERY_EXP\2NATURAL_MAGIC_EXP\2STEALTH_EXP\2SURVIVAL_EXP\2TRADE_EXP\2VAMPIRE_EXP"
 	--Skills = Skills.."\2BATTLE_LEVEL\2EMPIRE_LEVEL\2HIGH_SORCERY_LEVEL\2NATURAL_MAGIC_LEVEL\2STEALTH_LEVEL\2SURVIVAL_LEVEL\2TRADE_LEVEL\2VAMPIRE_LEVEL"
+=======
+	Basic = "\2CHARACTER_NAME\2CLASS\2LEVEL\2SKILL_LEVEL\2GEAR_LEVEL\2CRAFTING_LEVEL\2BONUS_EXP\2ROOM\2AFFECTS\2COOLDOWNS\2DOTS" --name class level exits affects
+	Primary = "\2STR\2INT\2WIT\2DEX\2CHA\2GRT\2STR_PERM\2INT_PERM\2WIT_PERM\2DEX_PERM\2CHA_PERM\2GRT_PERM" --6 primary stats
+	Secondary = "\2TO_HIT\2DODGE\2BLOCK\2RESIST_PHYSICAL\2RESIST_MAGICAL\2BONUS_PHYSICAL\2BONUS_MAGICAL\2BONUS_HEALING" --the secondary stats
+	Skills = "\2BATTLE_EXP\2EMPIRE_EXP\2HIGH_SORCERY_EXP\2NATURAL_MAGIC_EXP\2STEALTH_EXP\2SURVIVAL_EXP\2TRADE_EXP\2VAMPIRE_EXP"
+	Skills = Skills.."\2BATTLE_LEVEL\2EMPIRE_LEVEL\2HIGH_SORCERY_LEVEL\2NATURAL_MAGIC_LEVEL\2STEALTH_LEVEL\2SURVIVAL_LEVEL\2TRADE_LEVEL\2VAMPIRE_LEVEL"
+>>>>>>> master
 	Bars = "\2HEALTH_MAX\2HEALTH_REGEN\2HEALTH\2MANA_MAX\2MANA_REGEN\2MANA\2MOVEMENT_MAX\2MOVEMENT_REGEN\2MOVEMENT\2BLOOD\2BLOOD_MAX\2BLOOD_UPKEEP" --health mana move blood
 	Other = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX\2OPPONENT_HEALTH" --more stuff
 	
@@ -1894,8 +1890,19 @@ function OnPluginTelnetRequest (type, data)
   end -- if
 end -- function OnPluginTelnetRequest
 
-function OnPluginTelnetSubnegotiation (type, data)
-  if type == MSDP then
+function get_room_string()
+  if msdp["ROOM"] == nil or msdp["ROOM"] == "" then
+    return nil
+  end
+  room = unpack_array(msdp["ROOM"])
+  local line1 = "["..room["VNUM"].."]\n"
+  local line2 = room["NAME"].." ("..room["TERRAIN"]..")\n"
+  local line3 = "("..room["COORDS"]["X"]..","..room["COORDS"]["Y"]..") - "..room["AREA"]
+  return line1..line2..line3
+end
+
+function OnPluginTelnetSubnegotiation (neg_type, data)
+  if neg_type == MSDP then
     endpos = string.len(data)
     bName = false
     bValue = false
@@ -1988,18 +1995,22 @@ function OnPluginTelnetSubnegotiation (type, data)
 
     -- redraw the spell affect icons
     draw_affects ()
-	
-	
- --[[	if msdp["DOTS"] ~= nil and msdp["DOTS"] ~= "" then
-     dots = unpack_array(msdp["DOTS"])
-	  Note("DOTS: "..msdp["DOTS"])
-	  Note("Unpacking DOTS")
+--[[	local test = get_room_string()
+	if test then Note(test) end
+	if msdp["ROOM"] ~= nil and msdp["ROOM"] ~= "" then
+      room = unpack_array(msdp["ROOM"])
+	  Note("ROOM: "..msdp["ROOM"])
+	  Note("Unpacking ROOM")
       
-	  Note("Unpacked DOTS. Result:")
-	  for u, i in pairs(dots) do
-	    Note(u)
-	    for k, v in pairs(i) do
-		  Note(k..": "..v)
+	  Note("Unpacked ROOM. Result:")
+	  for u, i in pairs(room) do
+	    if type(i)=="table" then
+		  Note(u)
+	      for k, v in pairs(i) do
+		    Note(k..": "..v)
+		  end
+		else
+		  Note(u..": "..i)
 		end
 	  end
     end]]
