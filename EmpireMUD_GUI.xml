@@ -1307,6 +1307,7 @@ function init_affects (data)
     AffectMax = index
   end -- if
 end --function
+
 local CooldownName = {}
 local CooldownDuration = {}
 local CooldownMax = 0
@@ -1359,6 +1360,50 @@ function seconds_to_minutes(seconds)
   end
 end
 
+function compare(a,b)
+  return a[2] < b[2]
+end
+
+function sort_cooldowns ()
+  --turns CooldownName and CooldownDuration into a two-dimensional, sorts it, then puts them back
+  --This seems ridiculous but nothing else was working
+  local t = {}
+  local i = 1
+  for i = 1, CooldownMax do
+    t[i] = {CooldownName[i], tonumber(CooldownDuration[i])}
+  end
+  table.sort(t, compare)
+  for k, v in pairs(t) do
+    CooldownName[k] = v[1]
+	CooldownDuration[k] = v[2]
+  end
+end
+
+function AffectMouseUp(flags, hotspot_id)
+  if bit.band (flags, 0x10) ~= 0 then
+    -- must be left mouse
+    affect_click(hotspot_id)
+  end -- if
+end
+
+function affect_mode_switch(mode)
+  return not mode
+end
+
+function affect_click(hotspot_id)
+  local len = string.len(affect_window_prefix)
+  local id = 0
+  if string.sub(hotspot_id, 1, len) == affect_window_prefix then
+    id = tonumber(string.sub(hotspot_id, len+1))
+	AffectMode[id] = affect_mode_switch(AffectMode[i])
+  end
+  local len = string.len(cooldown_window_prefix)
+  if string.sub(hotspot_id, 1, len) == cooldown_window_prefix then
+    id = tonumber(string.sub(hotspot_id, len+1))
+	CooldownMode[id] = affect_mode_switch(CooldownMode[i])
+  end
+end
+
 function draw_cooldowns (startx, starty)
   cooldowns = msdp["COOLDOWNS"]
   if cooldowns == nil or cooldowns == "None" then
@@ -1371,6 +1416,14 @@ function draw_cooldowns (startx, starty)
 
 
   init_cooldowns (cooldowns)
+--[[  CooldownMax = 3
+  CooldownName[1] = "lightningbolt"
+  CooldownDuration[1] = 9
+  CooldownName[2] = "summon swift"
+  CooldownDuration[2] = 60
+  CooldownName[3] = "skybrand"
+  CooldownDuration[3] = 6]]
+  sort_cooldowns ()
   offset_x = 0
   offset_y = 0
 
