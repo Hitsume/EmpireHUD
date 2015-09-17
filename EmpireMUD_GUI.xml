@@ -759,7 +759,7 @@ function draw_energy_bars ()
   end -- if
 
   if current_health ~= nil and max_health ~= nil then
-    type = "Health"
+    local type = "Health"
     colour = 0x0000AA
     colour2 = 0x000033
 	colour3 = 0x0000FF
@@ -784,7 +784,7 @@ function draw_energy_bars ()
   end -- if
 
   if current_mana ~= nil and max_mana ~= nil then
-    type = "Mana"
+    local type = "Mana"
     colour = 0xAA0000
     colour2 = 0x330000
 	colour3 = 0xFF0000
@@ -809,7 +809,7 @@ function draw_energy_bars ()
   end -- if
 
   if current_movement ~= nil and max_movement ~= nil then
-    type = "Move"
+    local type = "Move"
     colour = 0x00AA00
     colour2 = 0x003300
 	colour3 = 0x00FF00
@@ -836,7 +836,7 @@ function draw_energy_bars ()
   end -- if
 
   if current_blood ~= nil and max_blood ~= nil and msdp["VAMPIRE_LEVEL"] ~= nil and msdp["VAMPIRE_LEVEL"] ~= 0 then
-    type = "Blood"
+    local type = "Blood"
     colour = 0x0000CC
     colour2 = 0x000033
 	colour3 = 0x3333AA
@@ -1267,41 +1267,133 @@ function draw_score ()
 
 end -- draw_score
 
+
+function split_nested_arrays (msdp_data)
+  --This just unsticks nestedarrays, like DOTS, from each other, and returns them as an array of strings
+  --It won't help if there's nested arrays in the nested arrays
+  --The full data looks like:
+  --\1DOTS\2\3<\1[dotname]\2\3\1DURATION\2[value]\1TYPE\2[value]\1DAMAGE\2[value]\1STACKS\2[value]\4>*?\4
+  --msdp_data is <\1[dotname]\2\3\1DURATION\2[value]\1TYPE\2[value]\1DAMAGE\2[value]\1STACKS\2[value]\4>*?
+  --I'm not sure this is necessary any more
+  local data = {}
+  local index = 1
+  local depth = 0
+  local start = 1
+  for position = 1, string.len(msdp_data) do
+    local char = string.sub(msdp_data, position, position)
+	if char == '\001' then
+	  --start of a new value, but we actually handle this in the \004 case
+	end
+	if char == '\003' then
+	  depth = depth + 1
+	elseif char == '\004' then
+	  depth = depth - 1
+	  if depth == 0 then
+	    data[index] = string.sub(msdp_data, start, position)
+		index = index + 1
+		start = position + 1
+	  end
+	end
+  end
+  return data
+end
+
 function unpack_array(msdp_data)
   --Unpack an array of the form \1VAR_NAME\2VAR_VALUE\1VAR_NAME\2VAR_VALUE etc.
+  --Assumes the leading \1NAME\2\3 and trailing \4 are already gone but (hopefully) doesn't rely on it
+  --\1NAME\2VALUE will return {NAME, VALUE}
+  --\1NAME\2\3\1NAME\2VALUE\4 will return {NAME, {NAME, VALUE}}
+  --\1NAME\2\3\1NAME\2\3\1PROPERTY\2VALUE\4\4 will return {NAME, {NAME, {PROPERTY, VALUE}}}
+  --
+  if string.sub(msdp_data, 1, 1) ~= "\1" then
+    msdp_data = "\1"..msdp_data --sigh
+  end
   local position = 1
-  local i = 1
   local data = {}
-  while position<string.len(msdp_data) do
-  
-    st, en = string.find(msdp_data, "\001", position, true) --find the leading \1
-	if st == nil then
-	  --no more variables
-	  break
-	end
-	position = en+1
-	
-	st2, en2 = string.find(msdp_data, "\002", position, true) --find the leading \2 of the value
-	if st2 == nil then
-	  --key/value mismatch: abort
-	  Note("Key/value mismatch in unpack_array! Data: "..msdp_data)
-	  return nil
-	end
-	position = en2+1
+  local str = ""
+  local is_key = false
+  local is_value = false
+  local key = ""
+  local value = ""
+  local depth = 0
+  local add = false
+  local enable_debug = false
+  if enable_debug then Note(msdp_data) end
+  while position<=string.len(msdp_data) do
 
-    st3, en3 = string.find(msdp_data, "\001", position, true) --find the leading \1 of the *next* variable
-	if st3 == nil then
-	  --no more variables
-	  st3 = string.len(msdp_data)+1 --ends at the end of the string
+    local char = string.sub(msdp_data, position, position)
+	if char == '\1' and depth==0 then
+	  if enable_debug then Note("Hit 1. End of: "..str) end
+	  if is_value then
+	    value = str
+		if key ~= "" and value ~= "" then
+            add = true
+		end
+	  elseif is_value then --two keys in a row...?
+         --ignore
+	  end
+	  str = ""
+	  is_value = false
+	  is_key = true
+	elseif char == '\2' and depth==0 then
+	  if enable_debug then Note("Hit 2. End of: "..str) end
+	  if is_key then
+	    key = str
+		if key ~= "" and value ~= "" then
+            add = true
+	    end
+	  elseif is_value then --two values in a row...?
+        --ignore for now
+      end
+	  str = ""
+	  is_key = false
+	  is_value = true
+    elseif char == '\3' then
+	  if enable_debug then Note("Hit 3.") end
+	  depth = depth + 1 --sigh
+	elseif char == '\4' then
+	  if enable_debug then Note("Hit 4.") end
+      depth = depth - 1 --whew
+      if depth == 0 then
+	    if is_value then
+          value = unpack_array(str)
+		  if key ~= "" and value ~= "" then
+            add = true
+		  end
+		end
+	  end
+	  str = ""
+	else
+	  if is_key and enable_debug then Tell("k") elseif is_value and enable_debug then Tell("v") end
+      if enable_debug then Note(str.."+="..char) end
+	  str = str..char
 	end
-	local key = string.sub(msdp_data, en+1, st2-1) --\001 to \002
-	local value = string.sub(msdp_data, en2+1, st3-1) --\002 to the next \001 or the end of the string
-	data[key] = value
-	position = en2+1
+	if add then
+	  if type(value) == "string" then
+	    if enable_debug then Note("Added"..key..":"..value) end
+	  else
+	    if enable_debug then Note("Added "..key..": not string") end
+      end
+	  data[key] = value
+	  key = ""
+	  value = ""
+	  add = false
+	end
+	position = position + 1
   end
-  for k, v in pairs(data) do
-    Note(k..": "..v)
+  --debug:
+  if enable_debug then
+    for k, v in pairs(data) do
+      if type(v) == "table" then
+        for u, i in pairs(v) do
+	      Note(k..": {u:"..u..",i:"..i.."}")
+	    end
+	  else
+	    Note(k..":"..v)
+      end
+    end
   end
+  return data
 end
 
 local AffectName = {}
@@ -1408,7 +1500,11 @@ function sort_cooldowns ()
   local t = {}
   local i = 1
   for i = 1, CooldownMax do
+    --I have no idea why this was happening but it's causing a lot of errors
+    if CooldownName[i] == nil then return end
+	if CooldownDuration[i] == nil then return end
     t[i] = {CooldownName[i], tonumber(CooldownDuration[i])}
+--	Note(CooldownName[i]..":"..CooldownDuration[i])
   end
   table.sort(t, compare)
   for k, v in pairs(t) do
@@ -1461,7 +1557,9 @@ function draw_cooldowns (startx, starty)
   CooldownDuration[2] = 60
   CooldownName[3] = "skybrand"
   CooldownDuration[3] = 6]]
-  sort_cooldowns ()
+  if CooldownMax > 1 then
+    sort_cooldowns ()
+  end
   offset_x = 0
   offset_y = 0
 
@@ -1469,7 +1567,7 @@ function draw_cooldowns (startx, starty)
     if CooldownName[i] ~= nil then
       win = cooldown_window_prefix..i
       cooldown = "cooldown_"..i
-
+--  Note(cooldowns)
       -- draw the icons left to right, top to bottom
       if i > 1 then
         if offset_x == 0 then
@@ -1731,9 +1829,38 @@ function OnPluginTelnetSubnegotiation (type, data)
         bValue = true
       elseif string.byte(data,i) == 3 then
         bTable = bTable + 1
-        bIgnore = true
+		if bTable > 1 then
+		  if bName == true then
+            if variable == nil then
+              variable = ""
+            end -- if
+            variable = variable..string.sub(data,i,i)
+          elseif bValue == true then
+            if value == nil then
+              value = ""
+            end -- if
+            value = value..string.sub(data,i,i)
+	      end -- if
+		else
+          bIgnore = true
+        end
       elseif string.byte(data,i) == 4 then
         bTable = bTable - 1
+		if bTable > 0 then
+		  if bName == true then
+            if variable == nil then
+              variable = ""
+            end -- if
+            variable = variable..string.sub(data,i,i)
+          elseif bValue == true then
+            if value == nil then
+              value = ""
+            end -- if
+            value = value..string.sub(data,i,i)
+	      end -- if
+		else
+--        bIgnore = true
+        end
       elseif bIgnore == true then
         bIgnore = false -- Just ignore one character.
       elseif bName == true then
@@ -1768,8 +1895,17 @@ function OnPluginTelnetSubnegotiation (type, data)
     -- redraw the spell affect icons
     draw_affects ()
 	
-	if msdp["DOTS"] ~= nil then
-      unpack_array(msdp["DOTS"])
+	if msdp["DOTS"] ~= nil and msdp["DOTS"] ~= "" then
+	  Note("DOTS: "..msdp["DOTS"])
+	  Note("Unpacking DOTS")
+      dots = unpack_array(msdp["DOTS"])
+	  Note("Unpacked DOTS. Result:")
+	  for u, i in pairs(dots) do
+	    Note(u)
+	    for k, v in pairs(i) do
+		  Note(k..": "..v)
+		end
+	  end
     end
 	
     Redraw()
