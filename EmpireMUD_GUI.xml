@@ -1040,7 +1040,7 @@ function draw_score ()
   end
   y_offset = y_offset + territory_height/2
 --  text_line = 'Level '..msdp["LEVEL"]..' '..msdp["RACE"]..' '..msdp["CLASS"]
-  WindowMoveHotspot(score_window, "hs_level", 0, y_offset, score_width, y_offset+10)
+  WindowMoveHotspot(score_window, "hs_level", 0, y_offset+2, score_width, y_offset+14)
   if msdp["LEVEL"] and msdp["SKILL_LEVEL"] and msdp["GEAR_LEVEL"] and msdp["CRAFTING_LEVEL"] then
     local tooltip = "Combat ["..msdp["LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..msdp["GEAR_LEVEL"].." (gear)\n"
 	tooltip = tooltip.."Crafting ["..msdp["CRAFTING_LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..(tonumber(msdp["CRAFTING_LEVEL"])-tonumber(msdp["SKILL_LEVEL"])).." (gear)"
