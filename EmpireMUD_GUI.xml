@@ -1200,7 +1200,7 @@ function draw_score ()
   colourBad2 = 0x000033
   if msdp["BONUS_EXP"] and tonumber(msdp["BONUS_EXP"]) > 0 then
     local size = 10
-    draw_mini_bar (0xAAAA00, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, (score_width-xpbar_width)/2, size, msdp["BONUS_EXP"], 15)
+    draw_mini_bar (0xAAAA00, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, xpbar_width, size, msdp["BONUS_EXP"], 15)
 	outlined_text (colourSilver, score_window, msdp["BONUS_EXP"], size-4, 27, y_offset-(size-10)/2, 0, true)	
 	outlined_text (colourSilver, score_window, "Bonus experience", size-4, 33, y_offset-(size-10)/2, 0)
 	outlined_text (colourSilver, score_window, math.ceil(tonumber(msdp["BONUS_EXP"]/15)*100-0.5).."%", size-4, score_width-3, y_offset-(size-10)/2, 0, true)
