@@ -158,6 +158,23 @@ function gui_hide (name, line, wildcards)
   ColourNote ("yellow", "", "GUI now hidden. Type 'gui show' to show it.")
 end --gui_hide
 
+function OnPluginEnable ()
+  gui_show ()
+end -- OnPluginDisable
+
+function OnPluginDisable ()
+  gui_hide ()
+end -- OnPluginDisable
+
+-- hide window on removal
+function OnPluginClose ()
+  gui_hide ()
+end
+
+function OnPluginInstall ()
+  gui_show ()
+end
+
 left = 20 -- was 175
 top = 73
 right_offset = -320
