@@ -1335,7 +1335,8 @@ function unpack_array(msdp_data)
   --\1NAME\2\3\1NAME\2VALUE\4 will return {NAME, {NAME, VALUE}}
   --\1NAME\2\3\1NAME\2\3\1PROPERTY\2VALUE\4\4 will return {NAME, {NAME, {PROPERTY, VALUE}}}
   --
-  if msdp_data == nil or msdp_data == "" then return nil end
+  if msdp_data == nil then return nil end
+  if msdp_data == "" then return {} end
   if string.sub(msdp_data, 1, 1) ~= "\1" then
     msdp_data = "\1"..msdp_data --this should be here in the first place, it's what bIgnore removes
 	--but affects assumes it's not
@@ -1390,7 +1391,7 @@ function unpack_array(msdp_data)
       depth = depth - 1 --whew
       if depth == 0 then
 	    if is_value then
-          value = unpack_array(str)
+		  if str == "" then value = {} else value = unpack_array(str) end --if we get an empty array (room has no exits)
 		  if key ~= "" and value ~= "" then
             add = true
 		  end
@@ -1958,6 +1959,117 @@ function get_room_string()
   return line1..line2..line3
 end
 
+
+function got_vitals ()      -- eg. "H:496/496 M:412/412 E:1380/1380 W:960/960 NL:89/100"
+  local s = nil
+  status,err = pcall(function() s = "H:"..msdp["HEALTH"].."/"..msdp["HEALTH_MAX"].." M:"..msdp["MANA"].."/"..msdp["MANA_MAX"].." E:"..msdp["MOVEMENT"].."/"..msdp["MOVEMENT_MAX"].." W:0/0 NL:0/0" end)
+  if err then return end
+  BroadcastPlugin (1, s)
+end -- got_vitals
+
+function got_room_brief ()  -- eg. "Continuing on the Parade of Zarathustra"
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["NAME"] end)
+  if err then Note(err) return end
+  if s == nil then return end --????
+  BroadcastPlugin (2, s)
+end -- got_room_brief
+
+function got_room_exits ()  -- eg. "n,s"
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["EXITS"] end)
+  if err then Note(err) return end
+  if s == nil then s = "ne,s,e,sw,w,se,nw,n" else--outdoors?
+    local i=1
+	s=""
+	for k,v in pairs(room["EXITS"]) do
+      if i>1 then
+	    s=s..","
+      end
+	  i=i+1
+	  s=s..k
+	end
+  end
+  BroadcastPlugin (3, s)
+end -- got_room_exits
+
+function got_room_number ()  -- eg. "441"
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["VNUM"] end)
+  if err then Note(err) return end
+  BroadcastPlugin (4, s)
+end -- got_room_number
+
+function got_full_exits ()  -- eg. "ne(8564),w(8428)"
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["EXITS"] end)
+  if err then Note(err) return end
+  if s == nil then s="" else --outdoors? we can't get vnums
+    local i=1
+	s=""
+	for k,v in pairs(room["EXITS"]) do
+      if i>1 then
+	    s=s..","
+      end
+	  i=i+1
+	  s=s..k.."("..v..")"
+	end
+  end
+  BroadcastPlugin (5, s)
+end -- got_full_exits
+
+function got_environment ()  -- eg. "Urban"
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["TERRAIN"] end)
+  if err then Note(err) return end
+  BroadcastPlugin (6, s)
+end -- got_environment
+
+function got_coordinates ()  -- eg. "38,3,1,0"  (area,x,y,z)
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["AREA"]..","..room["COORDS"]["X"]..","..room["COORDS"]["Y"]..","..room["COORDS"]["Z"] end) --string.byte(string.sub(msdp["ROOM"]["AREA"], 1, 1))?
+  if err then Note(err) return end
+  BroadcastPlugin (7, s)
+end -- got_coordinates
+
+function got_info ()  -- eg. "shop,postoffice"
+  local types = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() types = room["NAME"] end) --string.byte(string.sub(msdp["ROOM"]["AREA"], 1, 1))?
+  if err then Note(err) return end
+  local s = ""
+  if types=="The Pigeon Post" then s = "postoffice" elseif types=="The Trading Post" then s = "shop" end
+  if s == "" then return end
+  BroadcastPlugin (8, s)
+end -- got_info
+
+handlers = {
+
+  ['Room.Brief']        = got_room_brief,
+
+  ['Room.Exits']        = got_room_exits,
+  ['Char.Vitals']       = got_vitals,
+  ['Room.FullExits']    = got_full_exits,
+  ['Room.Environment']  = got_environment,
+  ['Room.Coordinates']  = got_coordinates,
+  ['Room.Info']         = got_info,
+  ['Room.Num']          = got_room_number,
+  
+  } -- end handlers
+
 function OnPluginTelnetSubnegotiation (neg_type, data)
   if neg_type == MSDP then
     endpos = string.len(data)
@@ -1968,8 +2080,8 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
     variable = nil
     value = nil
 
---    Note('Raw data: ['..data..']')
---	Note('Formatted: ['..filter(data)..']')
+    Note('Raw data: ['..data..']')
+	Note('Formatted: ['..filter(data)..']')
 	
     for i=1,endpos,1 do
       if string.byte(data,i) == 1 and bTable == 0 then
@@ -2053,13 +2165,13 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
 
     -- redraw the spell affect icons
     draw_affects ()
---[[	local test = get_room_string()
-	if test then Note(test) end
-	if msdp["ROOM"] ~= nil and msdp["ROOM"] ~= "" then
+	--local test = get_room_string()
+	--if test then Note(test) end
+--[[	if msdp["ROOM"] ~= nil and msdp["ROOM"] ~= "" then
       room = unpack_array(msdp["ROOM"])
 	  Note("ROOM: "..msdp["ROOM"])
 	  Note("Unpacking ROOM")
-      
+      if room and not room["EXITS"] then Note("We appear to be outdoors") end
 	  Note("Unpacked ROOM. Result:")
 	  for u, i in pairs(room) do
 	    if type(i)=="table" then
@@ -2072,7 +2184,9 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
 		end
 	  end
     end]]
-	
+    if GetPluginInfo ("c511a7e6a633f2da67d935d3", 17) then --hack-y automapper variant enabled
+      for i = 1, 3 do for _,v in pairs(handlers) do v() end end --why this doesn't work the first time I have no idea...
+	end
     Redraw()
 
   end -- if
