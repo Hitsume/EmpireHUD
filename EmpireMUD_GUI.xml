@@ -2151,9 +2151,10 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
     bIgnore = false
     variable = nil
     value = nil
-
-    Note('Raw data: ['..data..']')
-	Note('Formatted: ['..filter(data)..']')
+    if debug_mode then
+      Note('Raw data: ['..data..']')
+	  Note('Formatted: ['..filter(data)..']')
+	end
 	
     for i=1,endpos,1 do
       if string.byte(data,i) == 1 and bTable == 0 then
