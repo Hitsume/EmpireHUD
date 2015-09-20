@@ -32,7 +32,12 @@ very small windows cause the status bars to detach from the score window?
 <alias script="gui_hide" match="gui hide" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_show" match="gui on" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_hide" match="gui off" enabled="y" sequence="100" ignore_case="y" />
+<alias script="de_bug" match="gui debug" enabled="y" sequence="100" ignore_case ="y" />
 </aliases>
+
+<timers>
+  <timer script="update_bars" name="bar_updater" second="0.10" enabled="y" offset_second="0.00" />
+</timers>
 
 <!--  Get our standard constants -->
 
@@ -77,6 +82,14 @@ local energybar_width = score_width
 local energybar_offset = 0
 local energybar_height = 20
 local energybar_spacing = 0
+local energybar_update_ratio = 9/10 --update "speed" of energy bars (distance, not framerate)
+local energybar_update_time = 0.1 --seconds, float, max ~59.9
+local debug_mode = false
+
+
+function de_bug()
+  debug_mode = not debug_mode
+end
 
 function gui_show (name, line, wildcards)
   gui_on = true
@@ -172,6 +185,7 @@ function OnPluginClose ()
 end
 
 function OnPluginInstall ()
+  SetTimerOption("bar_updater", "second", energybar_update_time)
   gui_show ()
 end
 
@@ -686,7 +700,7 @@ function init_rooms (data)
 
   index = 0
   startpos = 1
-  max = 0
+  local max = 0
   for i=startpos,string.len(data),1 do
     if string.byte(data,i) == 1 or i == string.len(data) then
       if string.byte(data,i) == 1 then
@@ -784,12 +798,12 @@ function draw_energy_bars ()
     local type = "Health"
     colour = 0x0000AA
     colour2 = 0x000033
-	colour3 = 0x0000FF
+	colour3 = 0xAAAAAA
     draw_energy_bar(type, colour, colour2, colour3, health_window, current_health, max_health, last_health, health_regen)
   end -- if
   --update the "previous value"
 
-  if last_health == nil or os.time()-last_health_time>=1 then
+  if last_health == nil or os.time()-last_health_time>=2 then
     last_health = current_health
   end
   last_health_time = os.time()
@@ -809,12 +823,12 @@ function draw_energy_bars ()
     local type = "Mana"
     colour = 0xAA0000
     colour2 = 0x330000
-	colour3 = 0xFF0000
+	colour3 = 0xAAAAAA
     draw_energy_bar(type, colour, colour2, colour3, mana_window, current_mana, max_mana, last_mana, mana_regen)
   end -- if
   --update the "previous time"
 
-  if last_mana == nil or os.time()-last_mana_time>=1 then
+  if last_mana == nil or os.time()-last_mana_time>=2 then
     last_mana = current_mana
   end
   last_mana_time = os.time()
@@ -829,17 +843,17 @@ function draw_energy_bars ()
     current_movement = 0
     max_movement = 0
   end -- if
-
+  
   if current_movement ~= nil and max_movement ~= nil then
     local type = "Move"
     colour = 0x00AA00
     colour2 = 0x003300
-	colour3 = 0x00FF00
+	colour3 = 0xAAAAAA
     draw_energy_bar(type, colour, colour2, colour3, movement_window, current_movement, max_movement, last_movement, movement_regen)
   end -- if
   --update the "previous value"
 
-  if last_movement == nil or os.time()-last_movement_time>=1 then
+  if last_movement == nil or os.time()-last_movement_time>=2 then
     last_movement = current_movement
   end
   last_movement_time = os.time()
@@ -861,7 +875,7 @@ function draw_energy_bars ()
     local type = "Blood"
     colour = 0x0000CC
     colour2 = 0x000033
-	colour3 = 0x3333AA
+	colour3 = 0xAAAAAA
     draw_energy_bar(type, colour, colour2, colour3, blood_window, current_blood, max_blood, last_blood, blood_regen)
   end -- if
   
@@ -906,10 +920,10 @@ end
 function draw_xp_bar (skill, colour, colour2, window, x_offset, y_offset, current_value, max_value, level_value)
   -- convert the strings to numbers
 --  Note(current_value.."/"..max_value)
-  current = tonumber(current_value)
-  max = tonumber(max_value)
+  local current = tonumber(current_value)
+  local max = tonumber(max_value)
   if level_value==nil then level_value = "0" end
-  level = tonumber(level_value)
+  local level = tonumber(level_value)
   -- Apply limits
   if current < 0 then
     current = 0
@@ -943,71 +957,106 @@ function draw_xp_bar (skill, colour, colour2, window, x_offset, y_offset, curren
   
 end --of draw_xp_bar
 
+local energy_prev = {}
+local energy_current = {}
+local energy_max = {}
+--used to pass information to update_bar
+local energy_colours = {}
+local energy_windows = {}
 -- fill the bar
 function draw_energy_bar (type, colour, colour2, colour3, window, current_value, max_value, previous_value, regen)
-
   -- convert the strings to numbers
-  current = tonumber(current_value)
-  max = tonumber(max_value)
+  energy_current[type] = tonumber(current_value) or 0
+  energy_max[type] = tonumber(max_value) or 0
   if previous_value == nil then previous_value = "0" end
   if regen == nil then regen = "0" end
   --Note(type..", "..current_value..", "..max_value..", "..previous_value)
-  previous = tonumber(previous_value)
+--  previous = tonumber(previous_value)
   -- Apply limits
   
-  if current < 0 then
-    current = 0
-  elseif current > max then
-    current = max
+  if energy_current[type] < 0 then
+    energy_current[type] = 0
+  elseif energy_current[type] > energy_max[type] then
+    energy_current[type] = energy_max[type]
   end -- if
   -- Apply limits
-  if previous < 0 then previous = 0 elseif previous > max then previous = max end
+--  if previous < 0 then previous = 0 elseif previous > max then previous = max end
   -- clear the bars
-  local offset = 0
-  local height = energybar_height
-  WindowGradient (window, offset, -1, energybar_width+offset, height/2, colourBlack, colour2, 2)
-  WindowGradient (window, offset, height/2, energybar_width+offset, height+1, colour2, colourBlack, 2)
-
-  -- calculate the filled part
-  if max > 0 then
-    filled = math.min(current,previous) / max
-	filled2 = math.max(current,previous) / max
-	percent = current/max*100
-  else -- avoid division by zero
-    filled = 0
-	filled2 = 0
-	percent = 0
-  end -- if
+  
+  --figure out the regen time
   if tonumber(regen) < 0 then
-    regentime = math.ceil(current/(tonumber(regen)/-75)).." seconds."
+    regentime = math.ceil(energy_current[type]/(tonumber(regen)/-75)).." seconds."
   elseif tonumber(regen) == 0 then
     regentime = "Never."
   else
-    regentime = math.ceil((max-current)/(tonumber(regen)/5)).." seconds."
+    regentime = (math.ceil((energy_max[type]-energy_current[type])/(tonumber(regen)))*5).." seconds."
   end
+  --set the tooltip
   if tonumber(regen) < 0 then
     WindowHotspotTooltip(window, "hs_tooltip", "Spending "..(tonumber(regen)*-1).." per 75 seconds.\nWill be empty in: "..regentime)
-  else
+  elseif tonumber(regen) > 0 then
     WindowHotspotTooltip(window, "hs_tooltip", "Regenerating "..regen.." per 5 seconds.\nWill be full in: "..regentime)
+  else
+    WindowHotspotTooltip(window, "hs_tooltip", "Not currently draining or regenerating.")
   end
   -- redraw the bars
-  if current > 0 then
-    WindowGradient (window, offset, -1, filled*energybar_width, height/2, colourBlack, colour, 2)
-    WindowGradient (window, offset, height/2, filled*energybar_width, height+1, colour, colourBlack, 2)
-    WindowGradient (window, filled*energybar_width+offset, -1, filled2*energybar_width, height/2, colourBlack, colour3, 2)
-    WindowGradient (window, filled*energybar_width+offset, height/2, filled2*energybar_width, height+1, colour3, colourBlack, 2)
-  end -- if
+  if energy_prev[type] == nil then energy_prev[type] = energy_current[type] end
+  local loops = 0
 
-  -- write the information inside
-  outlined_text (colourGold, window, type, 9, 3+offset, (height-14)/2, 0)
-  if (type ~= "Enemy") then
-    outlined_text (colourGold, window, current..' / '..max, 9, 55+offset, (height-14)/2, 90)
-    outlined_text (colourGold, window, math.ceil(percent)..'%', 9, energybar_width-3+offset, (height-14)/2, 0, true)
-  else
-    outlined_text (colourGold, window, math.ceil(percent)..'%', 9, 55+offset, (height-14)/2, 0)
-  end
-
+  energy_colours[type] = {colour, colour2, colour3}
+  energy_windows[type] = window
+  update_bar(type)
 end -- draw_energy_bar
+
+function update_bars()
+  if debug_mode then
+    Note("updating bars")
+  end
+  for k, v in pairs(energy_current) do update_bar(k) end
+  Redraw()
+end
+
+function update_bar(type, colour, colour2, colour3, window)
+--  Note("updating bar for "..type)
+  local offset = 0
+  local height = energybar_height
+  local colour = colour or energy_colours[type][1]
+  local colour2 = colour2 or energy_colours[type][2]
+  local colour3 = colour3 or energy_colours[type][3]
+  local window = window or energy_windows[type]
+  if not colour or not colour2 or not colour3 or not window then Note(colour, colour2, colour3, window) return end
+    if energy_max[type] > 0 then
+      filled = energy_current[type] / energy_max[type]
+	  filled_prev = energy_prev[type] / energy_max[type]
+	  percent = energy_current[type]/energy_max[type]*100
+--	if filled_prev<filled then Note("filled2<filled error") end
+    else -- avoid division by zero
+      filled = 0
+	  filled_prev = 0
+	  percent = 0
+    end -- if
+    WindowGradient (window, offset, -1, energybar_width+offset, height/2, colourBlack, colour2, 2)
+    WindowGradient (window, offset, height/2, energybar_width+offset, height+1, colour2, colourBlack, 2)
+    if energy_current[type] > 0 then
+      --draw order
+      WindowGradient (window, offset, -1, filled*energybar_width, height/2, colourBlack, colour, 2)
+      WindowGradient (window, offset, height/2, filled*energybar_width, height+1, colour, colourBlack, 2)
+	  local left = filled*energybar_width+offset
+	  local right = filled_prev*energybar_width
+	  if right<left then local temp=right right=left left=temp end
+      WindowGradient (window, left, -1, right, height/2, colourBlack, colour3, 2)
+      WindowGradient (window, left, height/2, right, height+1, colour3, colourBlack, 2)
+	  energy_prev[type] = (energy_prev[type]*energybar_update_ratio)+(energy_current[type]*(1-energybar_update_ratio))
+    end -- if
+    -- write the information inside
+    outlined_text (colourGold, window, type, 9, 3+offset, (height-14)/2, 0)
+    if (type ~= "Enemy") then
+      outlined_text (colourGold, window, energy_current[type]..' / '..energy_max[type], 9, 55+offset, (height-14)/2, 90)
+      outlined_text (colourGold, window, math.ceil(percent)..'%', 9, energybar_width-3+offset, (height-14)/2, 0, true)
+    else
+      outlined_text (colourGold, window, math.ceil(percent)..'%', 9, 55+offset, (height-14)/2, 0)
+    end
+end
 
 --are we unable to gain xp at the current level?
 function max_level (level)
@@ -1401,7 +1450,7 @@ function init_affects (data)
 
   index = 0
   startpos = 1
-  max = 0
+  local max = 0
   for i=startpos,string.len(data),1 do
     if string.byte(data,i) == 1 or i == string.len(data) then
       if string.byte(data,i) == 1 then
@@ -1445,7 +1494,7 @@ function init_cooldowns (data)
 
   index = 0
   startpos = 1
-  max = 0
+  local max = 0
   for i=startpos,string.len(data),1 do
     if string.byte(data,i) == 1 or i == string.len(data) then
       if string.byte(data,i) == 1 then
@@ -1910,6 +1959,7 @@ function get_room_string()
 end
 
 function OnPluginTelnetSubnegotiation (neg_type, data)
+--  Note(data)
   if neg_type == MSDP then
     endpos = string.len(data)
     bName = false
