@@ -1050,7 +1050,7 @@ function update_bar(type, colour, colour2, colour3, colour4, window)
 	  local left = filled*energybar_width+offset
 	  local right = filled_prev*energybar_width
 	  --are we decreasing?
-	  if right<left then local temp=right right=left left=temp colour3 = colour4 end
+	  if right<left then local temp=right right=left left=temp else colour3 = colour4 end
       WindowGradient (window, left, -1, right, height/2, colourBlack, colour3, 2)
       WindowGradient (window, left, height/2, right, height+1, colour3, colourBlack, 2)
 	  energy_prev[type] = (energy_prev[type]*energybar_update_ratio)+(energy_current[type]*(1-energybar_update_ratio))
