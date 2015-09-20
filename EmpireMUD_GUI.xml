@@ -799,8 +799,9 @@ function draw_energy_bars ()
     local type = "Health"
     colour = 0x0000AA
     colour2 = 0x000033
-	colour3 = 0xAAAAAA
-    draw_energy_bar(type, colour, colour2, colour3, health_window, current_health, max_health, last_health, health_regen)
+	colour3 = 0x0000FF
+	colour4 = 0xAAAAAA
+    draw_energy_bar(type, colour, colour2, colour3, colour4, health_window, current_health, max_health, last_health, health_regen)
   end -- if
   --update the "previous value"
 
@@ -824,8 +825,9 @@ function draw_energy_bars ()
     local type = "Mana"
     colour = 0xAA0000
     colour2 = 0x330000
-	colour3 = 0xAAAAAA
-    draw_energy_bar(type, colour, colour2, colour3, mana_window, current_mana, max_mana, last_mana, mana_regen)
+	colour3 = 0xFF0000
+	colour4 = 0xAAAAAA
+    draw_energy_bar(type, colour, colour2, colour3, colour4, mana_window, current_mana, max_mana, last_mana, mana_regen)
   end -- if
   --update the "previous time"
 
@@ -849,8 +851,9 @@ function draw_energy_bars ()
     local type = "Move"
     colour = 0x00AA00
     colour2 = 0x003300
-	colour3 = 0xAAAAAA
-    draw_energy_bar(type, colour, colour2, colour3, movement_window, current_movement, max_movement, last_movement, movement_regen)
+	colour3 = 0x00FF00
+	colour4 = 0xAAAAAA
+    draw_energy_bar(type, colour, colour2, colour3, colour4, movement_window, current_movement, max_movement, last_movement, movement_regen)
   end -- if
   --update the "previous value"
 
@@ -878,8 +881,7 @@ function draw_energy_bars ()
     local type = "Blood"
     colour = 0x0000CC
     colour2 = 0x000033
-	colour3 = 0xAAAAAA
-    draw_energy_bar(type, colour, colour2, colour3, blood_window, current_blood, max_blood, last_blood, blood_regen)
+    draw_energy_bar(type, colour, colour2, colour3, colour4, blood_window, current_blood, max_blood, last_blood, blood_regen)
 	WindowShow(blood_window, true)
 	no_blood = false --used to position the rest of the score
   else
@@ -962,7 +964,7 @@ local energy_max = {}
 local energy_colours = {}
 local energy_windows = {}
 -- fill the bar
-function draw_energy_bar (type, colour, colour2, colour3, window, current_value, max_value, previous_value, regen)
+function draw_energy_bar (type, colour, colour2, colour3, colour4, window, current_value, max_value, previous_value, regen)
   -- convert the strings to numbers
   energy_current[type] = tonumber(current_value) or 0
   energy_max[type] = tonumber(max_value) or 0
@@ -1001,7 +1003,7 @@ function draw_energy_bar (type, colour, colour2, colour3, window, current_value,
   if energy_prev[type] == nil then energy_prev[type] = energy_current[type] end
   local loops = 0
 
-  energy_colours[type] = {colour, colour2, colour3}
+  energy_colours[type] = {colour, colour2, colour3, colour4}
   energy_windows[type] = window
   update_bar(type)
 end -- draw_energy_bar
@@ -1014,20 +1016,22 @@ function update_bars()
   Redraw()
 end
 
-function update_bar(type, colour, colour2, colour3, window)
+function update_bar(type, colour, colour2, colour3, colour4, window)
 --  Note("updating bar for "..type)
   local offset = 0
   local height = energybar_height
   local colour = colour or energy_colours[type][1]
   local colour2 = colour2 or energy_colours[type][2]
   local colour3 = colour3 or energy_colours[type][3]
+  local colour4 = colour4 or energy_colours[type][4]
   local window = window or energy_windows[type]
-  if not colour or not colour2 or not colour3 or not window then Note(colour, colour2, colour3, window) return end
+  --don't enable this, too spammy
+  --Note(colour, colour2, colour3, colour4, window)
+  if not colour or not colour2 or not colour3 or not colour4 or not window then return end
     if energy_max[type] > 0 then
       filled = energy_current[type] / energy_max[type]
 	  filled_prev = energy_prev[type] / energy_max[type]
 	  percent = energy_current[type]/energy_max[type]*100
---	if filled_prev<filled then Note("filled2<filled error") end
     else -- avoid division by zero
       filled = 0
 	  filled_prev = 0
@@ -1041,7 +1045,8 @@ function update_bar(type, colour, colour2, colour3, window)
       WindowGradient (window, offset, height/2, filled*energybar_width, height+1, colour, colourBlack, 2)
 	  local left = filled*energybar_width+offset
 	  local right = filled_prev*energybar_width
-	  if right<left then local temp=right right=left left=temp end
+	  --are we decreasing?
+	  if right<left then local temp=right right=left left=temp colour3 = colour4 end
       WindowGradient (window, left, -1, right, height/2, colourBlack, colour3, 2)
       WindowGradient (window, left, height/2, right, height+1, colour3, colourBlack, 2)
 	  energy_prev[type] = (energy_prev[type]*energybar_update_ratio)+(energy_current[type]*(1-energybar_update_ratio))
