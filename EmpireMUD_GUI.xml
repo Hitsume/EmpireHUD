@@ -1047,8 +1047,10 @@ function update_bar(type, colour, colour2, colour3, colour4, window)
 	  local right = filled_prev*energybar_width
 	  --are we decreasing?
 	  if right<left then local temp=right right=left left=temp else colour3 = colour4 end
-      WindowGradient (window, left, -1, right, height/2, colourBlack, colour3, 2)
-      WindowGradient (window, left, height/2, right, height+1, colour3, colourBlack, 2)
+	  if left-right>=1 then --prevents silliness
+        WindowGradient (window, left, -1, right, height/2, colourBlack, colour3, 2)
+        WindowGradient (window, left, height/2, right, height+1, colour3, colourBlack, 2)
+	  end
 	  energy_prev[type] = (energy_prev[type]*energybar_update_ratio)+(energy_current[type]*(1-energybar_update_ratio))
     end -- if
     -- write the information inside
@@ -1079,10 +1081,47 @@ function draw_score ()
 
   -- draw the avatar
   --check (WindowDrawImage (score_window, "avatar", 70, 50, 187, 147, 3))  -- draw it
-
+  --draw the time of day
+  local t, s
+  local success = false
+  local draw_text = true
+  t, s = process_mud_time(msdp["WORLD_TIME"],msdp["WORLD_SEASON"])
+  --draw the time image
+  if WindowLoadImage (score_window, "time", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/"..t..".png") == eOK then
+    success = true
+	draw_text = false
+  elseif WindowLoadImage (score_window, "time", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/TimeDefault.png") == eOK then
+    success = true
+  end    
+  if success then
+    check (WindowDrawImage (score_window, "time", 1, 1, 33, 33, 3))  -- draw it
+  else
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/TimeDefault.png' is missing.")
+  end
+  if draw_text then
+    outlined_text (colourGold, score_window, t, 6, 1, 1, 32)
+  end
+  --draw the season image
+  success = false
+  draw_text = true
+  if WindowLoadImage (score_window, "season", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/"..s..".png") == eOK then
+    success = true
+	draw_text = false
+  elseif WindowLoadImage (score_window, "season", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/SeasonDefault.png") == eOK then
+    success = true
+  end    
+  if success then
+    check (WindowDrawImage (score_window, "season", score_width-33, 1, score_width-1, 33, 3))  -- draw it
+  else
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/SeasonDefault.png' is missing.")
+  end -- if
+  if draw_text then
+    outlined_text (colourGold, score_window, s, 5, score_width-33, 1, 32)
+  end
+  
   x_offset = score_width/2
   y_offset = 6
-  text_length = outlined_text (colourGold, score_window, msdp["CHARACTER_NAME"], 12, 5, y_offset, score_width)
+  text_length = outlined_text (colourGold, score_window, msdp["CHARACTER_NAME"], 12, 5, y_offset, score_width-10)
 
   y_offset = y_offset + 18
   if msdp["EMPIRE_NAME"] ~= nil and msdp["EMPIRE_RANK"] ~= nil then
@@ -2006,13 +2045,13 @@ function OnPluginTelnetRequest (neg_type, data)
 	Note(Skills)]]
     local Skills = "\2SKILLS"
 	Bars = "\2HEALTH_MAX\2HEALTH_REGEN\2HEALTH\2MANA_MAX\2MANA_REGEN\2MANA\2MOVEMENT_MAX\2MOVEMENT_REGEN\2MOVEMENT\2BLOOD\2BLOOD_MAX\2BLOOD_UPKEEP" --health mana move blood
-	Other = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX\2OPPONENT_HEALTH" --more stuff
-	
+	Empire = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX" --more stuff
+	Other = "\2WORLD_TIME\2WORLD_SEASON\2OPPONENT_HEALTH"
     Start = "\255\250\69\1REPORT"
-	Mid = Basic..Primary..Secondary..Bars..Skills..Other
+	Mid = Basic..Primary..Secondary..Bars..Skills..Empire..Other
 	End = "\2\255\240"
 	--
-    SendPkt (Start..Mid..End)
+    SendPkt (Start..Mid..End) --I'm legitimately surprised I can send this much data at once without breaking something
     return true
   else -- another protocol
     return false
@@ -2140,6 +2179,24 @@ handlers = {
   ['Room.Num']          = got_room_number,
   
   } -- end handlers
+  
+function process_mud_time(hour, season)
+  local hour_str = "???"
+  local short_season = "unknown"
+  --hour string
+  local hour = tonumber(hour)
+  if hour == nil or season == nil then return hour_str, short_season end
+  if hour == 0 then hour_str = "12am"
+  elseif hour == 12 then hour_str = "12pm"
+  elseif hour < 13 then hour_str = hour.."am"
+  else hour_str = (hour-12).."pm"
+  end
+  local seasons = {"spring", "summer", "fall", "autumn", "winter"} 
+  for _,v in ipairs(seasons) do
+    if string.find(season, v) then short_season = v end
+  end
+  return hour_str, short_season
+end
 
 function OnPluginTelnetSubnegotiation (neg_type, data)
 --  Note(data)
