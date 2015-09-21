@@ -984,14 +984,17 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
   -- clear the bars
   
   --figure out the regen time
+  local regentime
+  local regentime_string
   if tonumber(regen) < 0 then
-    local t = math.ceil(energy_current[type]/(tonumber(regen)/-75))
-    regentime = seconds_to_minutes(t).."."
+    regentime = math.ceil(energy_current[type]/(tonumber(regen)/-75))
+    regentime_string = seconds_to_minutes(regentime).."."
   elseif tonumber(regen) == 0 then
-    regentime = "Never."
+    regentime = -1
+    regentime_string = "Never."
   else
-    local t = math.ceil((energy_max[type]-energy_current[type])/(tonumber(regen)))*5
-	if t >= 60 then t = seconds_to_minutes(t) regentime = t.."." else regentime = t.." seconds." end
+    regentime = math.ceil((energy_max[type]-energy_current[type])/(tonumber(regen)))*5
+	if regentime >= 60 then regentime_string = seconds_to_minutes(regentime).."." else regentime_string = regentime.." seconds." end
     --"25 seconds." or "3:35."
   end
   --set the tooltip
@@ -999,14 +1002,14 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
   local line2 = ""
   if type == "Blood" then
     line1 = "Spending "..(tonumber(regen)*-1).." per 75 seconds."
-	line2 = "Will last: "..regentime
+	line2 = "\nWill last: "..regentime_string
   else
-    if regentime > 0 then
-	  line2 = "Will be full in: "..regentime
+    if tonumber(regentime) > 0 then
+	  line2 = "\nWill be full in: "..regentime_string
 	end
     line1 = "Regenerating "..regen.." per 5 seconds."
   end
-  WindowHotspotTooltip(window, "hs_tooltip", line1.."\n"..line2)
+  WindowHotspotTooltip(window, "hs_tooltip", line1..line2)
   -- redraw the bars
   if energy_prev[type] == nil then energy_prev[type] = energy_current[type] end
   local loops = 0
