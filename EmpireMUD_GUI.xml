@@ -877,7 +877,7 @@ function draw_energy_bars ()
   local skills = unpack_array(msdp["SKILLS"])
   local vamp = nil
   if skills then vamp = skills["Vampire"] end
-  if current_blood ~= nil and max_blood ~= nil and vamp ~= nil and ((vamp["LEVEL"] ~= nil and vamp["LEVEL"] ~= 0) or (vamp["EXP"] ~= nil and vamp["EXP"] ~= 0)) then
+  if gui_on and current_blood ~= nil and max_blood ~= nil and vamp ~= nil and ((vamp["LEVEL"] ~= nil and vamp["LEVEL"] ~= 0) or (vamp["EXP"] ~= nil and vamp["EXP"] ~= 0)) then
     local type = "Blood"
     colour = 0x0000CC
     colour2 = 0x000033
