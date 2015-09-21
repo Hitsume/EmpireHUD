@@ -1015,7 +1015,7 @@ function update_bars()
   if debug_mode then
     Note("updating bars")
   end
-  for k, v in pairs(energy_current) do update_bar(k) end
+  for k, v in pairs(energy_current) do if debug_mode then Note(k..": "..energy_prev[k].."<"..energy_max[k].."/"..energy_current[k]) end update_bar(k) end
   Redraw()
 end
 
@@ -1046,11 +1046,11 @@ function update_bar(type, colour, colour2, colour3, colour4, window)
       --draw order
       WindowGradient (window, offset, -1, math.ceil(filled*energybar_width), height/2, colourBlack, colour, 2)
       WindowGradient (window, offset, height/2, math.ceil(filled*energybar_width), height+1, colour, colourBlack, 2)
-	  local left = math.ceil(filled*energybar_width+offset)
-	  local right = math.ceil(filled_prev*energybar_width)
+	  local left = filled*energybar_width+offset
+	  local right = filled_prev*energybar_width
 	  --are we decreasing?
 	  if right<left then local temp=right right=left left=temp else colour3 = colour4 end
-	  if left-right>=1 then --prevents silliness
+	  if math.abs(left-right)>=1 then --prevents silliness
         WindowGradient (window, left, -1, right, height/2, colourBlack, colour3, 2)
         WindowGradient (window, left, height/2, right, height+1, colour3, colourBlack, 2)
 	  end
