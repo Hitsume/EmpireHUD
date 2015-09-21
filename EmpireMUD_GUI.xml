@@ -985,15 +985,18 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
   
   --figure out the regen time
   if tonumber(regen) < 0 then
-    regentime = math.ceil(energy_current[type]/(tonumber(regen)/-75)).." seconds."
+    local t = math.ceil(energy_current[type]/(tonumber(regen)/-75))
+    regentime = seconds_to_minutes(t).."."
   elseif tonumber(regen) == 0 then
     regentime = "Never."
   else
-    regentime = (math.ceil((energy_max[type]-energy_current[type])/(tonumber(regen)))*5).." seconds."
+    local t = math.ceil((energy_max[type]-energy_current[type])/(tonumber(regen)))*5
+	if t >= 60 then t = seconds_to_minutes(t) regentime = t.."." else regentime = t.." seconds." end
+    --"25 seconds." or "3:35."
   end
   --set the tooltip
   if tonumber(regen) < 0 then
-    WindowHotspotTooltip(window, "hs_tooltip", "Spending "..(tonumber(regen)*-1).." per 75 seconds.\nWill be empty in: "..regentime)
+    WindowHotspotTooltip(window, "hs_tooltip", "Spending "..(tonumber(regen)*-1).." per 75 seconds.\nWill last: "..regentime)
   elseif tonumber(regen) > 0 then
     WindowHotspotTooltip(window, "hs_tooltip", "Regenerating "..regen.." per 5 seconds.\nWill be full in: "..regentime)
   else
