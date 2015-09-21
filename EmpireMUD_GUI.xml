@@ -995,13 +995,18 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
     --"25 seconds." or "3:35."
   end
   --set the tooltip
-  if tonumber(regen) < 0 then
-    WindowHotspotTooltip(window, "hs_tooltip", "Spending "..(tonumber(regen)*-1).." per 75 seconds.\nWill last: "..regentime)
-  elseif tonumber(regen) > 0 then
-    WindowHotspotTooltip(window, "hs_tooltip", "Regenerating "..regen.." per 5 seconds.\nWill be full in: "..regentime)
+  local line1 = ""
+  local line2 = ""
+  if type == "Blood" then
+    line1 = "Spending "..(tonumber(regen)*-1).." per 75 seconds."
+	line2 = "Will last: "..regentime
   else
-    WindowHotspotTooltip(window, "hs_tooltip", "Not currently draining or regenerating.")
+    if regentime > 0 then
+	  line2 = "Will be full in: "..regentime
+	end
+    line1 = "Regenerating "..regen.." per 5 seconds."
   end
+  WindowHotspotTooltip(window, "hs_tooltip", line1.."\n"..line2)
   -- redraw the bars
   if energy_prev[type] == nil then energy_prev[type] = energy_current[type] end
   local loops = 0
