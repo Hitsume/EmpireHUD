@@ -65,6 +65,7 @@ local movement_window = "movement_bar"  -- miniwindow ID
 local affect_window_prefix = "affect_window_" --miniwindow ID
 local cooldown_window_prefix = "cooldown_window_" --miniwindow ID
 local dot_window_prefix = "dot_window_" --miniwindow ID
+local skill_hotspot_prefix = "hs_skill_"
 local blood_window = "blood_bar"  -- miniwindow ID
 local gui_on = true
 local msdp = {}
@@ -873,14 +874,19 @@ function draw_energy_bars ()
     current_blood = 0
     max_blood = 0
   end -- if
-
-  if current_blood ~= nil and max_blood ~= nil and msdp["VAMPIRE_LEVEL"] ~= nil and msdp["VAMPIRE_LEVEL"] ~= 0 then
+  local skills = unpack_array(msdp["SKILLS"])
+  local vamp = nil
+  if skills then vamp = skills["Vampire"] end
+  if gui_on and current_blood ~= nil and max_blood ~= nil and vamp ~= nil and ((vamp["LEVEL"] ~= nil and vamp["LEVEL"] ~= 0) or (vamp["EXP"] ~= nil and vamp["EXP"] ~= 0)) then
     local type = "Blood"
     colour = 0x0000CC
     colour2 = 0x000033
-	colour3 = 0x0000FF
-	colour4 = 0xAAAAAA
     draw_energy_bar(type, colour, colour2, colour3, colour4, blood_window, current_blood, max_blood, last_blood, blood_regen)
+	WindowShow(blood_window, true)
+	no_blood = false --used to position the rest of the score
+  else
+    no_blood = true
+	WindowShow(blood_window, false) --hide the blood bar
   end -- if
   
   --update the "previous value"
@@ -888,16 +894,6 @@ function draw_energy_bars ()
     last_blood = current_blood
   end
   last_blood_time = os.time()
-  
-  --If not a vampire, hide blood
-  no_blood = true
-  WindowShow(blood_window, false) --hide the blood bar
-  if msdp["VAMPIRE_EXP"] ~= nil and msdp["VAMPIRE_LEVEL"] ~= nil then
-    if tonumber(msdp["VAMPIRE_LEVEL"])>0 or tonumber(msdp["VAMPIRE_EXP"])>0 then
-      WindowShow(blood_window, true)
-	  no_blood = false --used to position the rest of the score
-	end
-  end
 end -- draw_energy_bars
 
 function draw_mini_bar (colour, colour2, window, x_offset, y_offset, width, height, current_value, max_value)
@@ -988,21 +984,32 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
   -- clear the bars
   
   --figure out the regen time
+  local regentime
+  local regentime_string
   if tonumber(regen) < 0 then
-    regentime = math.ceil(energy_current[type]/(tonumber(regen)/-75)).." seconds."
+    regentime = math.ceil(energy_current[type]/(tonumber(regen)/-75))
+    regentime_string = seconds_to_minutes(regentime).."."
   elseif tonumber(regen) == 0 then
-    regentime = "Never."
+    regentime = -1
+    regentime_string = "Never."
   else
-    regentime = (math.ceil((energy_max[type]-energy_current[type])/(tonumber(regen)))*5).." seconds."
+    regentime = math.ceil((energy_max[type]-energy_current[type])/(tonumber(regen)))*5
+	if regentime >= 60 then regentime_string = seconds_to_minutes(regentime).."." else regentime_string = regentime.." seconds." end
+    --"25 seconds." or "3:35."
   end
   --set the tooltip
-  if tonumber(regen) < 0 then
-    WindowHotspotTooltip(window, "hs_tooltip", "Spending "..(tonumber(regen)*-1).." per 75 seconds.\nWill be empty in: "..regentime)
-  elseif tonumber(regen) > 0 then
-    WindowHotspotTooltip(window, "hs_tooltip", "Regenerating "..regen.." per 5 seconds.\nWill be full in: "..regentime)
+  local line1 = ""
+  local line2 = ""
+  if type == "Blood" then
+    line1 = "Spending "..(tonumber(regen)*-1).." per 75 seconds."
+	line2 = "\nWill last: "..regentime_string
   else
-    WindowHotspotTooltip(window, "hs_tooltip", "Not currently draining or regenerating.")
+    if tonumber(regentime) > 0 then
+	  line2 = "\nWill be full in: "..regentime_string
+	end
+    line1 = "Regenerating "..regen.." per 5 seconds."
   end
+  WindowHotspotTooltip(window, "hs_tooltip", line1..line2)
   -- redraw the bars
   if energy_prev[type] == nil then energy_prev[type] = energy_current[type] end
   local loops = 0
@@ -1016,7 +1023,7 @@ function update_bars()
   if debug_mode then
     Note("updating bars")
   end
-  for k, v in pairs(energy_current) do update_bar(k) end
+  for k, v in pairs(energy_current) do if debug_mode then Note(k..": "..energy_prev[k].."<"..energy_max[k].."/"..energy_current[k]) end update_bar(k) end
   Redraw()
 end
 
@@ -1045,14 +1052,16 @@ function update_bar(type, colour, colour2, colour3, colour4, window)
     WindowGradient (window, offset, height/2, energybar_width+offset, height+1, colour2, colourBlack, 2)
     if energy_current[type] > 0 then
       --draw order
-      WindowGradient (window, offset, -1, filled*energybar_width, height/2, colourBlack, colour, 2)
-      WindowGradient (window, offset, height/2, filled*energybar_width, height+1, colour, colourBlack, 2)
+      WindowGradient (window, offset, -1, math.ceil(filled*energybar_width), height/2, colourBlack, colour, 2)
+      WindowGradient (window, offset, height/2, math.ceil(filled*energybar_width), height+1, colour, colourBlack, 2)
 	  local left = filled*energybar_width+offset
 	  local right = filled_prev*energybar_width
 	  --are we decreasing?
 	  if right<left then local temp=right right=left left=temp else colour3 = colour4 end
-      WindowGradient (window, left, -1, right, height/2, colourBlack, colour3, 2)
-      WindowGradient (window, left, height/2, right, height+1, colour3, colourBlack, 2)
+	  if math.abs(left-right)>=1 then --prevents silliness
+        WindowGradient (window, left, -1, right, height/2, colourBlack, colour3, 2)
+        WindowGradient (window, left, height/2, right, height+1, colour3, colourBlack, 2)
+	  end
 	  energy_prev[type] = (energy_prev[type]*energybar_update_ratio)+(energy_current[type]*(1-energybar_update_ratio))
     end -- if
     -- write the information inside
@@ -1083,10 +1092,47 @@ function draw_score ()
 
   -- draw the avatar
   --check (WindowDrawImage (score_window, "avatar", 70, 50, 187, 147, 3))  -- draw it
-
+  --draw the time of day
+  local t, s
+  local success = false
+  local draw_text = true
+  t, s = process_mud_time(msdp["WORLD_TIME"],msdp["WORLD_SEASON"])
+  --draw the time image
+  if WindowLoadImage (score_window, "time", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/"..t..".png") == eOK then
+    success = true
+	draw_text = false
+  elseif WindowLoadImage (score_window, "time", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/TimeDefault.png") == eOK then
+    success = true
+  end    
+  if success then
+    check (WindowDrawImage (score_window, "time", 1, 1, 33, 33, 3))  -- draw it
+  else
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/TimeDefault.png' is missing.")
+  end
+  if draw_text then
+    outlined_text (colourGold, score_window, t, 6, 1, 1, 32)
+  end
+  --draw the season image
+  success = false
+  draw_text = true
+  if WindowLoadImage (score_window, "season", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/"..s..".png") == eOK then
+    success = true
+	draw_text = false
+  elseif WindowLoadImage (score_window, "season", GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/SeasonDefault.png") == eOK then
+    success = true
+  end    
+  if success then
+    check (WindowDrawImage (score_window, "season", score_width-33, 1, score_width-1, 33, 3))  -- draw it
+  else
+    Note( "File '" .. GetInfo (66) .. "EmpireMUD GUI/EmpireHUD/time/SeasonDefault.png' is missing.")
+  end -- if
+  if draw_text then
+    outlined_text (colourGold, score_window, s, 5, score_width-33, 1, 32)
+  end
+  
   x_offset = score_width/2
   y_offset = 6
-  text_length = outlined_text (colourGold, score_window, msdp["CHARACTER_NAME"], 12, 5, y_offset, score_width)
+  text_length = outlined_text (colourGold, score_window, msdp["CHARACTER_NAME"], 12, 5, y_offset, score_width-10)
 
   y_offset = y_offset + 18
   if msdp["EMPIRE_NAME"] ~= nil and msdp["EMPIRE_RANK"] ~= nil then
@@ -1115,7 +1161,7 @@ function draw_score ()
   end
   y_offset = y_offset + territory_height/2
 --  text_line = 'Level '..msdp["LEVEL"]..' '..msdp["RACE"]..' '..msdp["CLASS"]
-  WindowMoveHotspot(score_window, "hs_level", 0, y_offset, score_width, y_offset+10)
+  WindowMoveHotspot(score_window, "hs_level", 0, y_offset+2, score_width, y_offset+14)
   if msdp["LEVEL"] and msdp["SKILL_LEVEL"] and msdp["GEAR_LEVEL"] and msdp["CRAFTING_LEVEL"] then
     local tooltip = "Combat ["..msdp["LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..msdp["GEAR_LEVEL"].." (gear)\n"
 	tooltip = tooltip.."Crafting ["..msdp["CRAFTING_LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..(tonumber(msdp["CRAFTING_LEVEL"])-tonumber(msdp["SKILL_LEVEL"])).." (gear)"
@@ -1271,35 +1317,99 @@ function draw_score ()
   colourNormal2 = 0x003333
   colourMax1 = 0x00AA00
   colourMax2 = 0x003300
-  local spacing = xpbar_height+2 + 0
-  local skills = {"BATTLE", "EMPIRE","HIGH_SORCERY","NATURAL_MAGIC","STEALTH","SURVIVAL", "TRADE", "VAMPIRE"}
-  local skills_fancy = {"Battle", "Empire", "High Sorcery", "Natural Magic", "Stealth", "Survival", "Trade", "Vampire"}
-  local sk
-  local index
+  colourBad1 = 0x0000AA
+  colourBad2 = 0x000033
   if msdp["BONUS_EXP"] and tonumber(msdp["BONUS_EXP"]) > 0 then
     local size = 10
-    draw_mini_bar (0xAAAA00, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, (score_width-xpbar_width)/2, size, msdp["BONUS_EXP"], 15)
+    draw_mini_bar (0x888800, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, xpbar_width, size, msdp["BONUS_EXP"], 15)
+	if tonumber(msdp["BONUS_EXP"])>15 then
+	  draw_mini_bar (0xFFFF00, 0xAAAA00, score_window, (score_width-xpbar_width)/2, y_offset, xpbar_width, size, tonumber(msdp["BONUS_EXP"])-15, 15)
+	end
 	outlined_text (colourSilver, score_window, msdp["BONUS_EXP"], size-4, 27, y_offset-(size-10)/2, 0, true)	
-	outlined_text (colourSilver, score_window, "Bonus experience", size-4, 33, y_offset-(size-10)/2, 0)
+	outlined_text (colourSilver, score_window, "Bonus experience points", size-4, 33, y_offset-(size-10)/2, 0)
 	outlined_text (colourSilver, score_window, math.ceil(tonumber(msdp["BONUS_EXP"]/15)*100-0.5).."%", size-4, score_width-3, y_offset-(size-10)/2, 0, true)
     --draw_xp_bar ("Bonus experience", 0xAAAA00, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, msdp["BONUS_EXP"], 15, msdp["BONUS_EXP"])
 	y_offset = y_offset + size+2
   end
-  for index, sk in ipairs(skills) do
-    if msdp[sk.."_EXP"] ~= nil and msdp[sk.."_LEVEL"] ~= nil then
-      if tonumber(msdp[sk.."_LEVEL"])>0 or tonumber(msdp[sk.."_EXP"])>0 then
-        if max_level(msdp[sk.."_LEVEL"]) then colour = colourMax1 colour2 = colourMax2 else colour = colourNormal1 colour2 = colourNormal2 end
-        draw_xp_bar (skills_fancy[index], colour, colour2, score_window, (score_width-xpbar_width)/2, y_offset, msdp[sk.."_EXP"], 100, msdp[sk.."_LEVEL"])
-        y_offset = y_offset + spacing
+  local spacing = xpbar_height+2 + 0
+  local skills = {}
+  local name
+  local data
+  local skill_data = unpack_array(msdp["SKILLS"])
+  local hotspots = WindowHotspotList(score_window)
+  local hotspots_skills = {}
+  if hotspots then
+    for _,v in ipairs (hotspots) do 
+      if string.sub(v,1,string.len(skill_hotspot_prefix)) == skill_hotspot_prefix then
+	    table.insert(hotspots_skills, v)
 	  end
-    end
+	end
   end
+  if skill_data ~= nil then
+    local a = {}
+    for n in pairs(skill_data) do table.insert(a, n) end
+    table.sort(a) --this hack sorts skills alphabetically
+    for _,name in ipairs(a) do
+	  local data = skill_data[name]
+	  table.insert(skills, name)
+      --debug info
+      --if data ~= nil then for k,v in pairs(data) do Note(k..": "..v) end else Note("no skill data for "..sk) end
+	  --draw skill:
+      if data ~= nil and data["EXP"] ~= nil and data["LEVEL"] ~= nil then
+        if tonumber(data["LEVEL"])>0 or tonumber(data["EXP"])>0 then
+          if max_level(data["LEVEL"]) then colour = colourMax1 colour2 = colourMax2 elseif data["NOSKILL"]=="1" then colour = colourBad1 colour2 = colourBad2 else colour = colourNormal1 colour2 = colourNormal2 end
+          draw_xp_bar (name, colour, colour2, score_window, (score_width-xpbar_width)/2, y_offset, data["EXP"], 100, data["LEVEL"])
+          local found = false
+		  --find the hotspot
+		  for _,v in ipairs(hotspots_skills) do
+		    if string.lower(v)==string.lower(skill_hotspot_prefix)..string.lower(name) then found = true break end
+		  end
+		  --move it into place, or create it if not found
+		  if not found then
+--		    Note("Adding new tooltip "..skill_hotspot_prefix..string.lower(name))
+		    WindowAddHotspot(score_window, skill_hotspot_prefix..string.lower(name), (score_width-xpbar_width)/2, y_offset-1, (score_width-xpbar_width)/2+xpbar_width, y_offset+spacing-1, "", "", "", "", "", name, 12, 0);
+		  else
+		    WindowMoveHotspot(score_window, skill_hotspot_prefix..string.lower(name), (score_width-xpbar_width)/2, y_offset-1, (score_width-xpbar_width)/2+xpbar_width, y_offset+spacing-1)
+		  end
+		  --set the tooltip
+		  local noskilled = ""
+		  if data["NOSKILL"] == "1" then
+		    noskilled = "\nSkill gains disabled (noskill)."
+		  end
+		  local resets = "No skill resets available."
+		  if data["RESETS"] ~= nil and tonumber(data["RESETS"]) > 0 then
+		    local resets = "Skill resets available: "..data["RESETS"].."."
+		  end
+		  local xp = ""
+		  if max_level(data["LEVEL"]) then
+		    xp = " (max level)."
+		  else
+		    xp = " with "..data["EXP"].."% chance to gain."
+		  end
+		  WindowHotspotTooltip(score_window, skill_hotspot_prefix..string.lower(name), name..": Level "..data["LEVEL"]..xp.."\n"..resets..noskilled)
+          y_offset = y_offset + spacing
+	    end
+	  else
+	    --No specific skill data
+      end
+	end
+	--Remove old skill hotspots
+	for _,spot in ipairs(hotspots_skills) do
+	  local found
+	  for _,skill in ipairs(skills) do
+        if string.find(string.lower(spot), string.lower(skill)) then
+		  found = true
+        end
+      end
+      if not found then WindowDeleteHotspot(score_window, spot) end
+	end
+  end
+  
   right = GetInfo (281) + right_offset
   bottom = GetInfo (280) + bottom_offset
   draw_cooldowns(right+34, top+y_offset+11)
 
 end -- draw_score
-
 
 function split_nested_arrays (msdp_data)
   --This just unsticks nestedarrays, like DOTS, from each other, and returns them as an array of strings
@@ -1346,7 +1456,8 @@ function unpack_array(msdp_data)
   --\1NAME\2\3\1NAME\2VALUE\4 will return {NAME, {NAME, VALUE}}
   --\1NAME\2\3\1NAME\2\3\1PROPERTY\2VALUE\4\4 will return {NAME, {NAME, {PROPERTY, VALUE}}}
   --
-  if msdp_data == nil or msdp_data == "" then return nil end
+  if msdp_data == nil then return nil end
+  if msdp_data == "" then return {} end
   if string.sub(msdp_data, 1, 1) ~= "\1" then
     msdp_data = "\1"..msdp_data --this should be here in the first place, it's what bIgnore removes
 	--but affects assumes it's not
@@ -1401,7 +1512,7 @@ function unpack_array(msdp_data)
       depth = depth - 1 --whew
       if depth == 0 then
 	    if is_value then
-          value = unpack_array(str)
+		  if str == "" then value = {} else value = unpack_array(str) end --if we get an empty array (room has no exits)
 		  if key ~= "" and value ~= "" then
             add = true
 		  end
@@ -1608,8 +1719,8 @@ function draw_dots (startx, starty)
   offset_x = 0
   offset_y = 0
   local i = 0
-  for k,v in pairs(dots) do--	    (DURATION, TYPE, DAMAGE, STACKS)
-    Note(k)
+  for k,v in pairs(dots) do
+--    Note(k)
     i = i + 1
     if k ~= nil then
       win = dot_window_prefix..i
@@ -1674,7 +1785,6 @@ function draw_dots (startx, starty)
         outlined_text (colour, win, seconds_to_minutes(tonumber(v["DURATION"])), 6, offset, 21, 0, true) --4->32
       end -- if
       if tonumber(v["STACKS"])>0 then
-	    Note("drew stacks")
 	    outlined_text (colour, win, "x"..v["STACKS"], 6, 3, 3, 0)
 	  end
       -- show the window
@@ -1811,7 +1921,7 @@ function draw_affects ()
   AffectDuration[2] = "300"--]]
   offset_x = 0
   offset_y = 0
-
+  local spacing = 36
   for i=1,AffectMax,1 do
     if AffectName[i] ~= nil then
       win = affect_window_prefix..i
@@ -1821,15 +1931,15 @@ function draw_affects ()
       if i > 1 then
         if offset_x == 0 then
 --[[
-          offset_x = 36
-        elseif offset_x == 36 then
-          offset_x = 72
-        elseif offset_x == 72 then
-          offset_x = 108
+          offset_x = spacing
+        elseif offset_x == spacing then
+          offset_x = spacing*2
+        elseif offset_x == spacing*2 then
+          offset_x = spacing*3
         else
           offset_x = 0
 --]]
-          offset_y = offset_y + 36
+          offset_y = offset_y + spacing
         end -- if
       end -- if
 
@@ -1883,7 +1993,7 @@ function draw_affects ()
       WindowAddHotspot(win, "hs_affect_"..i, 0, 0, 34, 34, "", "", "", "", "", AffectName[i], 1, 0)
     end -- if
   end -- for
-  draw_dots(base_pos_x, base_pos_y + offset_y)
+  draw_dots(base_pos_x, base_pos_y + offset_y + spacing)
 end -- draw_affects
 
 
@@ -1938,16 +2048,21 @@ function OnPluginTelnetRequest (neg_type, data)
 	Basic = "\2CHARACTER_NAME\2CLASS\2LEVEL\2SKILL_LEVEL\2GEAR_LEVEL\2CRAFTING_LEVEL\2BONUS_EXP\2ROOM\2AFFECTS\2COOLDOWNS\2DOTS" --name class level exits affects
 	Primary = "\2STR\2INT\2WIT\2DEX\2CHA\2GRT\2STR_PERM\2INT_PERM\2WIT_PERM\2DEX_PERM\2CHA_PERM\2GRT_PERM" --6 primary stats
 	Secondary = "\2TO_HIT\2DODGE\2BLOCK\2RESIST_PHYSICAL\2RESIST_MAGICAL\2BONUS_PHYSICAL\2BONUS_MAGICAL\2BONUS_HEALING" --the secondary stats
-	Skills = "\2BATTLE_EXP\2EMPIRE_EXP\2HIGH_SORCERY_EXP\2NATURAL_MAGIC_EXP\2STEALTH_EXP\2SURVIVAL_EXP\2TRADE_EXP\2VAMPIRE_EXP"
-	Skills = Skills.."\2BATTLE_LEVEL\2EMPIRE_LEVEL\2HIGH_SORCERY_LEVEL\2NATURAL_MAGIC_LEVEL\2STEALTH_LEVEL\2SURVIVAL_LEVEL\2TRADE_LEVEL\2VAMPIRE_LEVEL"
+	--[[local sk = {"BATTLE","EMPIRE","HIGH_SORCERY","NATURAL_MAGIC","STEALTH","SURVIVAL","TRADE","VAMPIRE"}
+	local Skills = ""
+	for _, v in pairs(sk) do
+	  Skills = Skills.."\2"..v
+	end
+	Note(Skills)]]
+    local Skills = "\2SKILLS"
 	Bars = "\2HEALTH_MAX\2HEALTH_REGEN\2HEALTH\2MANA_MAX\2MANA_REGEN\2MANA\2MOVEMENT_MAX\2MOVEMENT_REGEN\2MOVEMENT\2BLOOD\2BLOOD_MAX\2BLOOD_UPKEEP" --health mana move blood
-	Other = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX\2OPPONENT_HEALTH" --more stuff
-	
+	Empire = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX" --more stuff
+	Other = "\2WORLD_TIME\2WORLD_SEASON\2OPPONENT_HEALTH"
     Start = "\255\250\69\1REPORT"
-	Mid = Basic..Primary..Secondary..Bars..Skills..Other
+	Mid = Basic..Primary..Secondary..Bars..Skills..Empire..Other
 	End = "\2\255\240"
 	--
-    SendPkt (Start..Mid..End)
+    SendPkt (Start..Mid..End) --I'm legitimately surprised I can send this much data at once without breaking something
     return true
   else -- another protocol
     return false
@@ -1965,6 +2080,135 @@ function get_room_string()
   return line1..line2..line3
 end
 
+
+function got_vitals ()      -- eg. "H:496/496 M:412/412 E:1380/1380 W:960/960 NL:89/100"
+  local s = nil
+  status,err = pcall(function() s = "H:"..msdp["HEALTH"].."/"..msdp["HEALTH_MAX"].." M:"..msdp["MANA"].."/"..msdp["MANA_MAX"].." E:"..msdp["MOVEMENT"].."/"..msdp["MOVEMENT_MAX"].." W:0/0 NL:0/0" end)
+  if err then return end
+  BroadcastPlugin (1, s)
+end -- got_vitals
+
+function got_room_brief ()  -- eg. "Continuing on the Parade of Zarathustra"
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["NAME"] end)
+  if err then Note(err) return end
+  if s == nil then return end --????
+  BroadcastPlugin (2, s)
+end -- got_room_brief
+
+function got_room_exits ()  -- eg. "n,s"
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["EXITS"] end)
+  if err then Note(err) return end
+  if s == nil then s = "ne,s,e,sw,w,se,nw,n" else--outdoors?
+    local i=1
+	s=""
+	for k,v in pairs(room["EXITS"]) do
+      if i>1 then
+	    s=s..","
+      end
+	  i=i+1
+	  s=s..k
+	end
+  end
+  BroadcastPlugin (3, s)
+end -- got_room_exits
+
+function got_room_number ()  -- eg. "441"
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["VNUM"] end)
+  if err then Note(err) return end
+  BroadcastPlugin (4, s)
+end -- got_room_number
+
+function got_full_exits ()  -- eg. "ne(8564),w(8428)"
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["EXITS"] end)
+  if err then Note(err) return end
+  if s == nil then s="" else --outdoors? we can't get vnums
+    local i=1
+	s=""
+	for k,v in pairs(room["EXITS"]) do
+      if i>1 then
+	    s=s..","
+      end
+	  i=i+1
+	  s=s..k.."("..v..")"
+	end
+  end
+  BroadcastPlugin (5, s)
+end -- got_full_exits
+
+function got_environment ()  -- eg. "Urban"
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["TERRAIN"] end)
+  if err then Note(err) return end
+  BroadcastPlugin (6, s)
+end -- got_environment
+
+function got_coordinates ()  -- eg. "38,3,1,0"  (area,x,y,z)
+  local s = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() s = room["AREA"]..","..room["COORDS"]["X"]..","..room["COORDS"]["Y"]..","..room["COORDS"]["Z"] end) --string.byte(string.sub(msdp["ROOM"]["AREA"], 1, 1))?
+  if err then Note(err) return end
+  BroadcastPlugin (7, s)
+end -- got_coordinates
+
+function got_info ()  -- eg. "shop,postoffice"
+  local types = nil
+  local room = unpack_array(msdp["ROOM"])
+  if room == nil then return end
+  status,err = pcall(function() types = room["NAME"] end) --string.byte(string.sub(msdp["ROOM"]["AREA"], 1, 1))?
+  if err then Note(err) return end
+  local s = ""
+  if types=="The Pigeon Post" then s = "postoffice" elseif types=="The Trading Post" then s = "shop" end
+  if s == "" then return end
+  BroadcastPlugin (8, s)
+end -- got_info
+
+handlers = {
+
+  ['Room.Brief']        = got_room_brief,
+
+  ['Room.Exits']        = got_room_exits,
+  ['Char.Vitals']       = got_vitals,
+  ['Room.FullExits']    = got_full_exits,
+  ['Room.Environment']  = got_environment,
+  ['Room.Coordinates']  = got_coordinates,
+  ['Room.Info']         = got_info,
+  ['Room.Num']          = got_room_number,
+  
+  } -- end handlers
+  
+function process_mud_time(hour, season)
+  local hour_str = "???"
+  local short_season = "unknown"
+  --hour string
+  local hour = tonumber(hour)
+  if hour == nil or season == nil then return hour_str, short_season end
+  if hour == 0 then hour_str = "12am"
+  elseif hour == 12 then hour_str = "12pm"
+  elseif hour < 13 then hour_str = hour.."am"
+  else hour_str = (hour-12).."pm"
+  end
+  local seasons = {"spring", "summer", "fall", "autumn", "winter"} 
+  for _,v in ipairs(seasons) do
+    if string.find(season, v) then short_season = v end
+  end
+  return hour_str, short_season
+end
+
 function OnPluginTelnetSubnegotiation (neg_type, data)
 --  Note(data)
   if neg_type == MSDP then
@@ -1975,9 +2219,11 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
     bIgnore = false
     variable = nil
     value = nil
-
---Note('Raw data: ['..data..']')
-
+    if debug_mode then
+      Note('Raw data: ['..data..']')
+	  Note('Formatted: ['..filter(data)..']')
+	end
+	
     for i=1,endpos,1 do
       if string.byte(data,i) == 1 and bTable == 0 then
         if variable ~= nil and value ~= nil then
@@ -2060,13 +2306,13 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
 
     -- redraw the spell affect icons
     draw_affects ()
---[[	local test = get_room_string()
-	if test then Note(test) end
-	if msdp["ROOM"] ~= nil and msdp["ROOM"] ~= "" then
+	--local test = get_room_string()
+	--if test then Note(test) end
+--[[	if msdp["ROOM"] ~= nil and msdp["ROOM"] ~= "" then
       room = unpack_array(msdp["ROOM"])
 	  Note("ROOM: "..msdp["ROOM"])
 	  Note("Unpacking ROOM")
-      
+      if room and not room["EXITS"] then Note("We appear to be outdoors") end
 	  Note("Unpacked ROOM. Result:")
 	  for u, i in pairs(room) do
 	    if type(i)=="table" then
@@ -2079,7 +2325,9 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
 		end
 	  end
     end]]
-	
+    if GetPluginInfo ("c511a7e6a633f2da67d935d3", 17) then --hack-y automapper variant enabled
+      for i = 1, 3 do for _,v in pairs(handlers) do v() end end --why this doesn't work the first time I have no idea...
+	end
     Redraw()
 
   end -- if
