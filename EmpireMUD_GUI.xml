@@ -528,11 +528,21 @@ function create_layout ()
                 0x000000))  -- background colour
 
   -- make a miniwindow for the inner area
+  local height = math.max(5,bottom-top-22)
+--[[  Tell("x:")
+  Tell(right+34)
+  Tell(",")
+  Tell(34+score_width)
+  Tell(",y:")
+  Tell(top+11)
+  Tell(",")
+  Tell(height)
+  Note("")]]
   check (WindowCreate (score_window,   -- window ID
                 right+34,   -- left
                 top+11,     -- top
                 score_width,-- width
-                bottom - top - 22, -- depth
+                height, -- depth
                 12,         -- center it (ignored anyway) 
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
