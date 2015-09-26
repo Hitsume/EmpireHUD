@@ -6,7 +6,7 @@ Installation instructions:
 2) Run MUSHclient.
 3) Open the Plugins menu (File -> Plugins, or Ctrl+Shift+P).
 4) Click Add...
-5) Navigate to and select EmpireHUD.xml.
+5) Navigate to and select EmpireMUD_GUI.xml.
 6) If you're already connected to EmpireMUD, reconnect to force MSDP to renegotiate.
 It should now be working!
 Optionally, if you're having trouble navigating indoor areas, after enabling EmpireHUD, you can try also
