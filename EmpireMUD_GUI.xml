@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
 <!DOCTYPE muclient>
-<!-- TODO
 
+<!-- TODO
 enemy status window
 check cooldowns wrap in the right place
 icons for stats?
-very small windows cause the status bars to detach from the score window?
-
+very small windows cause the energy bars to detach from the score window?
 -->
 
-<!-- MuClient version 4.51 -->
 <!-- Based heavily on KaVir's Generic GUI for MUSHClient 4.51-->
 
 <muclient>
@@ -18,10 +16,10 @@ very small windows cause the status bars to detach from the score window?
    author="Hitsume"
    id="a0a8aa6fec64eaf933e2120a"
    language="Lua"
-   purpose="A MSDP-based graphical interface for EmpireMUD 2.8+."
+   purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
-   requires="4.51"
-   version="1.0"
+   requires="4.94"
+   version="1.1"
    >
 
 </plugin>
