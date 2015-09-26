@@ -84,7 +84,7 @@ local energybar_spacing = 0
 local energybar_update_ratio = 9/10 --update "speed" of energy bars (distance, not framerate)
 local energybar_update_time = 0.1 --seconds, float, max ~59.9
 local debug_mode = false
-local path = "EmpireMUD GUI/EmpireHUD";
+local path = "EmpireHUD";
 
 function de_bug()
   debug_mode = not debug_mode
