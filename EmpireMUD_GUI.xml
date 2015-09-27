@@ -1386,7 +1386,7 @@ function draw_score ()
 		  end
 		  local resets = "No skill resets available."
 		  if data["RESETS"] ~= nil and tonumber(data["RESETS"]) > 0 then
-		    local resets = "Skill resets available: "..data["RESETS"].."."
+		    resets = "Skill resets available: "..data["RESETS"].."."
 		  end
 		  local xp = ""
 		  if max_level(data["LEVEL"]) then
