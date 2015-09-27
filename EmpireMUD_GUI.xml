@@ -1717,10 +1717,10 @@ local dots = {}
 
 function draw_dots (startx, starty)
   dots = unpack_array(msdp["DOTS"])
+  for i=1,dot_max,1 do
+    WindowShow (dot_window_prefix..i, false)
+  end -- for
   if dots == nil or dots == "None" or dots == {} then
-    for i=1,dot_max,1 do
-      WindowShow (dot_window_prefix..i, false)
-    end -- for
     dot_max = 0
     return
   end -- if
@@ -1805,7 +1805,7 @@ function draw_dots (startx, starty)
       WindowAddHotspot(win, "hs_dot_"..i, 0, 0, 34, 34, "", "", "", "", "AffectMouseUp", tooltip, 1, 0)
     end -- if
   end -- for
-  dot_max = i
+  if i>dot_max then dot_max = i end
 end --function
 
 
