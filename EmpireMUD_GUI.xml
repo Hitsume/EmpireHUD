@@ -1029,9 +1029,9 @@ end -- draw_energy_bar
 
 function update_bars()
   if debug_mode then
-    Note("updating bars")
+   -- Note("updating bars")
   end
-  for k, v in pairs(energy_current) do if debug_mode then Note(k..": "..energy_prev[k].."<"..energy_max[k].."/"..energy_current[k]) end update_bar(k) end
+  for k, v in pairs(energy_current) do --[[if debug_mode then Note(k..": "..energy_prev[k].."<"..energy_max[k].."/"..energy_current[k]) end]] update_bar(k) end
   Redraw()
 end
 
