@@ -2,10 +2,10 @@
 <!DOCTYPE muclient>
 
 <!-- TODO
-enemy status window
-check cooldowns wrap in the right place
+check cooldowns wrap in the right place (they don't)
 icons for stats?
-very small windows cause the energy bars to detach from the score window?
+move gui show/hide to a button?
+investigate white line below logo (rarely visible)
 -->
 
 <!-- Based heavily on KaVir's Generic GUI for MUSHClient 4.51-->
@@ -19,13 +19,14 @@ very small windows cause the energy bars to detach from the score window?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.1"
+   version="1.2"
    >
 
 </plugin>
 <!--  Aliases  -->
 
 <aliases>
+<alias script="gui_info" match="gui" enabled="y" sequence="100" ignore_case = "y" />
 <alias script="gui_show" match="gui show" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_hide" match="gui hide" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_show" match="gui on" enabled="y" sequence="100" ignore_case="y" />
@@ -57,6 +58,8 @@ local minimap_window = "minimap_image"  -- miniwindow ID
 local minimap_border_window = "minimap_border"  -- miniwindow ID
 local score_window = "score_image"  -- miniwindow ID
 local score_border_window = "score_border"  -- miniwindow ID
+local enemy_window = "enemy_window" --miniwindow ID
+local enemy_border_window = "enemy_border_window" --miniwindow ID
 local health_window = "health_bar"  -- miniwindow ID
 local mana_window = "mana_bar"  -- miniwindow ID
 local movement_window = "movement_bar"  -- miniwindow ID
@@ -67,6 +70,7 @@ local skill_hotspot_prefix = "hs_skill_"
 local blood_window = "blood_bar"  -- miniwindow ID
 local gui_on = true
 local msdp = {}
+-- configs:
 local colourGold = ColourNameToRGB("gold")
 local colourSilver = ColourNameToRGB("silver")
 local colourBlack = ColourNameToRGB("black")
@@ -75,7 +79,6 @@ local colourGreen = ColourNameToRGB("green")
 local score_width = 257
 local xpbar_width = score_width
 local xpbar_height = 14
-local primary_energy_bar_x_offset = 34
 local primary_energy_bar_y_offset = 75
 local energybar_width = score_width
 local energybar_offset = 0
@@ -84,15 +87,31 @@ local energybar_spacing = 0
 local energybar_update_ratio = 9/10 --update "speed" of energy bars (distance, not framerate)
 local energybar_update_time = 0.1 --seconds, float, max ~59.9
 local debug_mode = false
-local path = "EmpireHUD";
+local path = "EmpireHUD"; --You may need to change this.
+local font = "Verdana" --Font used for ALL graphical text.
 
 function de_bug()
+  if debug_mode then
+    Note("Debug mode disabled.")
+  else
+    Note("Debug mode enabled.")
+  end
   debug_mode = not debug_mode
+end
+
+function gui_info (name, line, wildcards)
+  Note("EmpireHUD v1.2 by Hitsume is installed. The following commands are available:")
+  Note("gui: shows this text.")
+  Note("gui <hide/off>: Hides the GUI. You can also do this by disabling the plugin.")
+  Note("gui <show/on>: Shows the GUI, if you used gui hide/off.")
+  Note("gui debug: Shows MSDP-related (and other) debug messages. Can be quite spammy.")
 end
 
 function gui_show (name, line, wildcards)
   gui_on = true
   create_layout()
+  -- redraw the enemy score window
+  draw_enemy_window ()
   -- redraw the score sheet
   draw_score ()
   -- redraw the energy bars
@@ -120,6 +139,9 @@ function gui_show (name, line, wildcards)
 end --gui_show
 
 function gui_hide (name, line, wildcards)
+  if GetInfo(280)==nil or GetInfo(281) == nil then --may fix runtime errors if MUSHclient is closed while world is open
+    return
+  end
   gui_on = false
   WindowShow(background_window, false)
   WindowShow(border_window, false)
@@ -188,20 +210,79 @@ function OnPluginInstall ()
   gui_show ()
 end
 
-left = 20 -- was 175
+left = 15 -- was 175
 top = 73
-right_offset = -320
-bottom_offset = -20
+right_offset = -307
+bottom_offset = -15
+score_border = 15
+score_left_offset = 25 --formerly 34
+score_top_offset = 11
+local primary_energy_bar_x_offset = score_left_offset --used to be up at the top with y_offset...
+
 right = GetInfo (281) + right_offset
 bottom = GetInfo (280) + bottom_offset  -- 32 pixels from bottom
+
+
+--draw window borders - used to be done inside create_layout, but it was repeated practically the same way every time
+function draw_borders (window, x, y)
+  -- load the left border image
+  if WindowLoadImage (window, "border_left", GetInfo (66) .. path .. "/layout/border_left.png") == eOK then
+    check (WindowDrawImage (window, "border_left", 0, 0, 0, 0, 1))  -- draw it
+  else -- the file is missing
+    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_left.png' is missing.")
+  end -- if
+
+  -- load the right border image
+  if WindowLoadImage (window, "border_right", GetInfo (66) .. path .. "/layout/border_right.png") == eOK then
+    check (WindowDrawImage (window, "border_right", x, 0, 0, 0, 1))  -- draw it
+  else -- the file is missing
+    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_right.png' is missing.")
+  end -- if
+
+  -- load the top border image
+  if WindowLoadImage (window, "border_top", GetInfo (66) .. path .. "/layout/border_top.png") == eOK then
+    check (WindowDrawImage (window, "border_top", 0, 0, 0, 0, 1))  -- draw it
+  else -- the file is missing
+    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
+  end -- if
+
+  -- load the bottom border image
+  if WindowLoadImage (window, "border_bottom", GetInfo (66) .. path .. "/layout/border_bottom.png") == eOK then
+    check (WindowDrawImage (window, "border_bottom", 0, y, 0, 0, 1))  -- draw it
+  else -- the file is missing
+    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
+  end -- if
+
+  -- load the top right corner image
+  if WindowLoadImage (window, "corner_tr", GetInfo (66) .. path .. "/layout/corner_tr.png") == eOK then
+    check (WindowDrawImage (window, "corner_tr", x, 0, 0, 0, 1))  -- draw it
+  else -- the file is missing
+    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_tr.png' is missing.")
+  end -- if
+
+  -- load the bottom right corner image
+  if WindowLoadImage (window, "corner_br", GetInfo (66) .. path .. "/layout/corner_br.png") == eOK then
+    check (WindowDrawImage (window, "corner_br", x, y, 0, 0, 1))  -- draw it
+  else -- the file is missing
+    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_br.png' is missing.")
+  end -- if
+end
 
 -- create the layout here, on getting the prompt, or window resize
 function create_layout ()
   if not gui_on then return end
- 
+
+  if GetInfo(280)==nil or GetInfo(281) == nil then --may fix runtime errors if MUSHclient is closed while world is open
+    return
+  end
+  
   right = GetInfo (281) + right_offset
   bottom = GetInfo (280) + bottom_offset
 
+
+  score_left = right+score_left_offset
+  score_top = top+score_top_offset
+  
   -- if its less than this, we lose the map
   min_width = 50 + GetInfo (213) * 81 -- offset + width for 81 characters
   if right < min_width then
@@ -277,48 +358,7 @@ function create_layout ()
     Note( "File '" .. GetInfo (66) .. path .. "/layout/inner_background.png' is missing.")
   end -- if
 
-
-  -- load the left border image
-  if WindowLoadImage (background_window, "border_left", GetInfo (66) .. path .. "/layout/border_left.png") == eOK then
-    check (WindowDrawImage (background_window, "border_left", 0, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_left.png' is missing.")
-  end -- if
-
-  -- load the right border image
-  if WindowLoadImage (background_window, "border_right", GetInfo (66) .. path .. "/layout/border_right.png") == eOK then
-    check (WindowDrawImage (background_window, "border_right", right-left-7, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_right.png' is missing.")
-  end -- if
-
-  -- load the top border image
-  if WindowLoadImage (background_window, "border_top", GetInfo (66) .. path .. "/layout/border_top.png") == eOK then
-    check (WindowDrawImage (background_window, "border_top", 0, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
-  end -- if
-
-  -- load the bottom border image
-  if WindowLoadImage (background_window, "border_bottom", GetInfo (66) .. path .. "/layout/border_bottom.png") == eOK then
-    check (WindowDrawImage (background_window, "border_bottom", 0, bottom-top-7, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
-  end -- if
-
-  -- load the top right corner image
-  if WindowLoadImage (background_window, "corner_tr", GetInfo (66) .. path .. "/layout/corner_tr.png") == eOK then
-    check (WindowDrawImage (background_window, "corner_tr", right-left-7, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_tr.png' is missing.")
-  end -- if
-
-  -- load the bottom right corner image
-  if WindowLoadImage (background_window, "corner_br", GetInfo (66) .. path .. "/layout/corner_br.png") == eOK then
-    check (WindowDrawImage (background_window, "corner_br", right-left-7, bottom-top-7, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_br.png' is missing.")
-  end -- if
+  draw_borders(background_window, right-left-7, bottom-top-7)
 
   -- show the window
   WindowShow (background_window, true)
@@ -374,47 +414,7 @@ function create_layout ()
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
 
-  -- load the left border image
-  if WindowLoadImage (bars_border_window, "border_left", GetInfo (66) .. path .. "/layout/border_left.png") == eOK then
-    check (WindowDrawImage (bars_border_window, "border_left", 0, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_left.png' is missing.")
-  end -- if
-
-  -- load the right border image
-  if WindowLoadImage (bars_border_window, "border_right", GetInfo (66) .. path .. "/layout/border_right.png") == eOK then
-    check (WindowDrawImage (bars_border_window, "border_right", 110+17, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_right.png' is missing.")
-  end -- if
-
-  -- load the top border image
-  if WindowLoadImage (bars_border_window, "border_top", GetInfo (66) .. path .. "/layout/border_top.png") == eOK then
-    check (WindowDrawImage (bars_border_window, "border_top", 0, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
-  end -- if
-
-  -- load the bottom border image
-  if WindowLoadImage (bars_border_window, "border_bottom", GetInfo (66) .. path .. "/layout/border_bottom.png") == eOK then
-    check (WindowDrawImage (bars_border_window, "border_bottom", 0, 110+17, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
-  end -- if
-
-  -- load the top right corner image
-  if WindowLoadImage (bars_border_window, "corner_tr", GetInfo (66) .. path .. "/layout/corner_tr.png") == eOK then
-    check (WindowDrawImage (bars_border_window, "corner_tr", 110+17, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_tr.png' is missing.")
-  end -- if
-
-  -- load the bottom right corner image
-  if WindowLoadImage (bars_border_window, "corner_br", GetInfo (66) .. path .. "/layout/corner_br.png") == eOK then
-    check (WindowDrawImage (bars_border_window, "corner_br", 110+17, 110+17, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_br.png' is missing.")
-  end -- if
+  draw_borders(bars_border_window, 110+17, 110+17)
 
   -- load the paper background image
   if WindowLoadImage (bars_window, "bars_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
@@ -451,47 +451,7 @@ function create_layout ()
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
 
-  -- load the left border image
-  if WindowLoadImage (minimap_border_window, "border_left", GetInfo (66) .. path .. "/layout/border_left.png") == eOK then
-    check (WindowDrawImage (minimap_border_window, "border_left", 0, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_left.png' is missing.")
-  end -- if
-
-  -- load the right border image
-  if WindowLoadImage (minimap_border_window, "border_right", GetInfo (66) .. path .. "/layout/border_right.png") == eOK then
-    check (WindowDrawImage (minimap_border_window, "border_right", 110+17, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_right.png' is missing.")
-  end -- if
-
-  -- load the top border image
-  if WindowLoadImage (minimap_border_window, "border_top", GetInfo (66) .. path .. "/layout/border_top.png") == eOK then
-    check (WindowDrawImage (minimap_border_window, "border_top", 0, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
-  end -- if
-
-  -- load the bottom border image
-  if WindowLoadImage (minimap_border_window, "border_bottom", GetInfo (66) .. path .. "/layout/border_bottom.png") == eOK then
-    check (WindowDrawImage (minimap_border_window, "border_bottom", 0, 110+17, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
-  end -- if
-
-  -- load the top right corner image
-  if WindowLoadImage (minimap_border_window, "corner_tr", GetInfo (66) .. path .. "/layout/corner_tr.png") == eOK then
-    check (WindowDrawImage (minimap_border_window, "corner_tr", 110+17, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_tr.png' is missing.")
-  end -- if
-
-  -- load the bottom right corner image
-  if WindowLoadImage (minimap_border_window, "corner_br", GetInfo (66) .. path .. "/layout/corner_br.png") == eOK then
-    check (WindowDrawImage (minimap_border_window, "corner_br", 110+17, 110+17, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_br.png' is missing.")
-  end -- if
+  draw_borders(minimap_border_window, 110+17, 110+17)
 
   -- load the paper background image
   if WindowLoadImage (minimap_window, "minimap_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
@@ -511,15 +471,49 @@ function create_layout ()
   -- draw the map
   draw_minimap ()
 --]]
+
+  check (WindowCreate (enemy_border_window,   -- window ID
+                score_left-score_border,         -- left
+                15-score_border,    -- top
+                score_width+2*score_border,        -- width
+                score_top-score_border-5,        	-- depth
+                12,         -- center it (ignored anyway) 
+                2,          -- draw underneath (1) + absolute location (2)
+                0x000000))  -- background colour
+
+  -- make a miniwindow for the enemy score
+  enemy_window_height = score_top-score_border*3-5
+  check (WindowCreate (enemy_window,   -- window ID
+                score_left,         -- left
+                15,    -- top
+                score_width,        -- width
+                enemy_window_height,        -- depth
+                12,         -- center it (ignored anyway) 
+                2,          -- draw underneath (1) + absolute location (2)
+                0x000000))  -- background colour
+				
+  draw_borders(enemy_border_window, score_width+15, score_top-score_border-5-15)
+  
+  if WindowLoadImage (enemy_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
+    check (WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
+  else -- the file is missing
+    Note( "File '" .. GetInfo (66) .. path .. "/layout/inner_background.png' is missing.")
+  end -- if
+  
+  draw_enemy_window()
+  --show the window and its border
+  WindowShow(enemy_border_window)
+  WindowShow(enemy_window)
+
   ----------------------------------------------------------------------------
   -- Create the score window to the right of the text.
   ----------------------------------------------------------------------------
 
   -- make a miniwindow for the graphical border
   check (WindowCreate (score_border_window,   -- window ID
-                right+19,   -- left
-                top-4,      -- top
-                287,        -- width
+                score_left-score_border,   -- left
+                score_top-score_border,      -- top
+                score_width+2*score_border,        -- width
                 bottom - top + 8, -- depth
                 12,         -- center it (ignored anyway) 
                 2,          -- draw underneath (1) + absolute location (2)
@@ -537,14 +531,14 @@ function create_layout ()
   Tell(height)
   Note("")]]
   check (WindowCreate (score_window,   -- window ID
-                right+34,   -- left
-                top+11,     -- top
+                score_left, -- left
+                score_top,  -- top
                 score_width,-- width
-                height, -- depth
+                height, 	-- depth
                 12,         -- center it (ignored anyway) 
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
-  --add hotspots
+  --add hotspots, for tooltips; more are added later
   WindowAddHotspot(score_window, "hs_terr", 0, 0, 1, 1, "", "", "", "", "", "Territory", 12, 0);
   WindowAddHotspot(score_window, "hs_level", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
   WindowAddHotspot(score_window, "hs_str", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
@@ -561,47 +555,7 @@ function create_layout ()
   WindowAddHotspot(score_window, "hs_magic", 0, 0, 1, 1, "", "", "", "", "", "Bonus-Magical", 12, 0);
   WindowAddHotspot(score_window, "hs_heal", 0, 0, 1, 1, "", "", "", "", "", "Bonus-Healing", 12, 0);
   
-  -- load the left border image
-  if WindowLoadImage (score_border_window, "border_left", GetInfo (66) .. path .. "/layout/border_left.png") == eOK then
-    check (WindowDrawImage (score_border_window, "border_left", 0, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_left.png' is missing.")
-  end -- if
-
-  -- load the right border image
-  if WindowLoadImage (score_border_window, "border_right", GetInfo (66) .. path .. "/layout/border_right.png") == eOK then
-    check (WindowDrawImage (score_border_window, "border_right", 145+110+17, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_right.png' is missing.")
-  end -- if
-
-  -- load the top border image
-  if WindowLoadImage (score_border_window, "border_top", GetInfo (66) .. path .. "/layout/border_top.png") == eOK then
-    check (WindowDrawImage (score_border_window, "border_top", 0, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
-  end -- if
-
-  -- load the bottom border image
-  if WindowLoadImage (score_border_window, "border_bottom", GetInfo (66) .. path .. "/layout/border_bottom.png") == eOK then
-    check (WindowDrawImage (score_border_window, "border_bottom", 0, bottom - top - 7, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
-  end -- if
-
-  -- load the top right corner image
-  if WindowLoadImage (score_border_window, "corner_tr", GetInfo (66) .. path .. "/layout/corner_tr.png") == eOK then
-    check (WindowDrawImage (score_border_window, "corner_tr", 145+110+17, 0, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_tr.png' is missing.")
-  end -- if
-
-  -- load the bottom right corner image
-  if WindowLoadImage (score_border_window, "corner_br", GetInfo (66) .. path .. "/layout/corner_br.png") == eOK then
-    check (WindowDrawImage (score_border_window, "corner_br", 145+110+17, bottom - top - 7, 0, 0, 1))  -- draw it
-  else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_br.png' is missing.")
-  end -- if
+  draw_borders(score_border_window, score_width+15, bottom-top-7) --145+110+17
 
   -- load the paper background image
   if WindowLoadImage (score_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
@@ -703,6 +657,7 @@ local RoomExit = {}
 local RoomType = {}
 local ExitCount = 0
 
+--for the minimap. Deprecated.
 function init_rooms (data)
 
   ExitCount = 0
@@ -733,7 +688,7 @@ function init_rooms (data)
 end -- function
 
 
--- draw one room
+-- draw one room. For the minimap; deprecated.
 function draw_room (x, y, type)
 
   terrain_image = "terrain_dark"
@@ -748,7 +703,7 @@ function draw_room (x, y, type)
 end -- draw_room
 
 
--- draw the minimap
+-- draw the minimap. Deprecated.
 function draw_minimap ()
 
   data = msdp["ROOM_EXITS"]
@@ -925,6 +880,7 @@ function draw_mini_bar (colour, colour2, window, x_offset, y_offset, width, heig
   end
 end
 
+--Draws skill experience bars for the score window.
 function draw_xp_bar (skill, colour, colour2, window, x_offset, y_offset, current_value, max_value, level_value)
   -- convert the strings to numbers
 --  Note(current_value.."/"..max_value)
@@ -938,7 +894,7 @@ function draw_xp_bar (skill, colour, colour2, window, x_offset, y_offset, curren
   elseif current > max then
     current = max
   end -- if
-  -- clear the bars
+  -- Draw the empty bars (clears the old ones)
   local height = xpbar_height
   WindowGradient (window, x_offset, y_offset-1, xpbar_width+x_offset, y_offset+height/2, colourBlack, colour2, 2)
   WindowGradient (window, x_offset, y_offset+height/2, xpbar_width+x_offset, y_offset+height+1, colour2, colourBlack, 2)
@@ -971,7 +927,8 @@ local energy_max = {}
 --used to pass information to update_bar
 local energy_colours = {}
 local energy_windows = {}
--- fill the bar
+
+-- Draw the individual energy bars (health, mana, moves, blood)
 function draw_energy_bar (type, colour, colour2, colour3, colour4, window, current_value, max_value, previous_value, regen)
   -- convert the strings to numbers
   energy_current[type] = tonumber(current_value) or 0
@@ -995,6 +952,7 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
   local regentime
   local regentime_string
   if tonumber(regen) < 0 then
+    --Regen is negative for blood. TODO: check type=="Blood"?
     regentime = math.ceil(energy_current[type]/(tonumber(regen)/-75))
     regentime_string = seconds_to_minutes(regentime).."."
   elseif tonumber(regen) == 0 then
@@ -1009,10 +967,10 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
   local line1 = ""
   local line2 = ""
   if type == "Blood" then
-    if tonumber(regen) < 0 then --are we actually spending any?
-  	line2 = "\nWill last: "..regentime_string
-    end
-    line1 = "Spending "..(tonumber(regen)*-1).." per 75 seconds."
+    if tonumber(regen) < 0 then
+		line2 = "\nWill last: "..regentime_string
+	end
+	line1 = "Spending "..(tonumber(regen)*-1).." per 75 seconds."
   else
     if tonumber(regentime) > 0 then
 	  line2 = "\nWill be full in: "..regentime_string
@@ -1090,6 +1048,19 @@ function max_level (level)
   level = tonumber(level)
   return (level==50 or level==75 or level==100)
 end
+
+function draw_enemy_window()
+  check (WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1))  -- redraw the background
+  local curr=msdp["OPPONENT_HEALTH"] or "0"
+  local maxi=msdp["OPPONENT_HEALTH_MAX"] or "100"
+  local lev = msdp["OPPONENT_LEVEL"] or "0"
+  local name = msdp["OPPONENT_NAME"] or ""
+  if gui_debug then Note(tonumber(curr)/tonumber(maxi)) end
+  draw_mini_bar (0x00aaaa, 0x333333, enemy_window, 0, enemy_window_height/2, score_width, enemy_window_height/2, curr, maxi)
+  outlined_text (colourGold, enemy_window, tostring(tonumber(curr)/tonumber(maxi)*100).."%", enemy_window_height*3/10, score_width-4, enemy_window_height/2, 0, 1)
+  outlined_text (colourSilver, enemy_window, name.." (lvl "..lev..")", enemy_window_height*3/10, 0, 0, score_width)
+end
+
 -- fill the score
 function draw_score ()
 
@@ -1417,10 +1388,11 @@ function draw_score ()
   
   right = GetInfo (281) + right_offset
   bottom = GetInfo (280) + bottom_offset
-  draw_cooldowns(right+34, top+y_offset+11)
+  draw_cooldowns(score_left, top+y_offset+11)--(right+34, top+y_offset+11)
 
 end -- draw_score
 
+--Deprecated:
 function split_nested_arrays (msdp_data)
   --This just unsticks nestedarrays, like DOTS, from each other, and returns them as an array of strings
   --It won't help if there's nested arrays in the nested arrays
@@ -1451,7 +1423,7 @@ function split_nested_arrays (msdp_data)
   return data
 end
 
-function filter(input) --turns specific telnet codes into numbers - debug use only
+function filter(input) --turns specific telnet codes into a more visually appealing[?] format - debug use only
   input = string.gsub(input,"\1","|")
   input = string.gsub(input,"\2","=")
   input = string.gsub(input,"\3","{")
@@ -1460,12 +1432,13 @@ function filter(input) --turns specific telnet codes into numbers - debug use on
 end
 
 function unpack_array(msdp_data)
-  --Unpack an array of the form \1VAR_NAME\2VAR_VALUE\1VAR_NAME\2VAR_VALUE etc.
+  --Unpack an array of the form \1VAR_NAME\2VAR_VALUE\1VAR_NAME\2VAR_VALUE etc. by calling itself recursively.
+  --This is necessary for affects, cooldowns, room data, etc.
   --Assumes the leading \1NAME\2\3 and trailing \4 are already gone but (hopefully) doesn't rely on it
   --\1NAME\2VALUE will return {NAME, VALUE}
   --\1NAME\2\3\1NAME\2VALUE\4 will return {NAME, {NAME, VALUE}}
   --\1NAME\2\3\1NAME\2\3\1PROPERTY\2VALUE\4\4 will return {NAME, {NAME, {PROPERTY, VALUE}}}
-  --
+  --At least I think so, pretty sure I wrote this before the actual function
   if msdp_data == nil then return nil end
   if msdp_data == "" then return {} end
   if string.sub(msdp_data, 1, 1) ~= "\1" then
@@ -1666,12 +1639,12 @@ function seconds_to_minutes (seconds)
   end
 end
 
-function compare(a,b)
+function compare(a,b) --for sort_cooldowns
   return a[2] < b[2]
 end
 
 function sort_cooldowns ()
-  --turns CooldownName and CooldownDuration into a two-dimensional, sorts it, then puts them back
+  --turns CooldownName and CooldownDuration into a two-dimensional array, sorts it, then puts them back
   --This seems ridiculous but nothing else was working
   local t = {}
   local i = 1
@@ -1789,7 +1762,7 @@ function draw_dots (startx, starty)
         outlined_text (colour, win, "O", 6, 4, 21, 0)
         outlined_text (colour, win, "O", 6, 9, 21, 0)
         -- go over the first 'O' again, removing the outline from the second 'O'
-        WindowFont(win,'f','Times New Roman',6,1,0,0,0)
+        WindowFont(win,'f',font,6,1,0,0,0)
         WindowText(win,'f',"O",4,21,0,0,colour,0)
       else -- write the duration
         outlined_text (colour, win, seconds_to_minutes(tonumber(v["DURATION"])), 6, offset, 21, 0, true) --4->32
@@ -1891,7 +1864,7 @@ function draw_cooldowns (startx, starty)
         outlined_text (colour, win, "O", 6, 4, 21, 0)
         outlined_text (colour, win, "O", 6, 9, 21, 0)
         -- go over the first 'O' again, removing the outline from the second 'O'
-        WindowFont(win,'f','Times New Roman',6,1,0,0,0)
+        WindowFont(win,'f',font,6,1,0,0,0)
         WindowText(win,'f',"O",4,21,0,0,colour,0)
       else -- write the duration
         outlined_text (colour, win, seconds_to_minutes(tonumber(CooldownDuration[i])), 6, offset, 21, 0, true) --4->32
@@ -1909,8 +1882,9 @@ function draw_cooldowns (startx, starty)
 end --function
 
 function draw_affects ()
-  local base_pos_x = GetInfo(281)-320-5
-  local base_pos_y = 73+10
+  --Affect draw location; dots also use this
+  local base_pos_x = right-11+1--GetInfo(281)-320-5
+  local base_pos_y = top+11 --73+10
   affects = msdp["AFFECTS"]
   if affects == nil or affects == "None" then
     for i=1,AffectMax,1 do
@@ -1988,7 +1962,7 @@ function draw_affects ()
         outlined_text (colour, win, "O", 6, 4, 21, 0)
         outlined_text (colour, win, "O", 6, 9, 21, 0)
         -- go over the first 'O' again, removing the outline from the second 'O'
-        WindowFont(win,'f','Times New Roman',6,1,0,0,0)
+        WindowFont(win,'f',font,6,1,0,0,0)
         WindowText(win,'f',"O",4,21,0,0,colour,0)
       else -- write the duration
         outlined_text (colour, win, seconds_to_minutes(tonumber(AffectDuration[i])), 6, 32, 21, 0, true) --4->32
@@ -2012,7 +1986,7 @@ function outlined_text (colour, window, text, size, x, y, centre_width, rj)
   outlineColour = colourBlack
 
   -- write the information inside
-  WindowFont(window,'f','Verdana',size,1,0,0,0)
+  WindowFont(window,'f',font,size,1,0,0,0)
   if rj then
     if centre_width > 0 then
       --right justify within the box
@@ -2067,7 +2041,7 @@ function OnPluginTelnetRequest (neg_type, data)
     local Skills = "\2SKILLS"
 	Bars = "\2HEALTH_MAX\2HEALTH_REGEN\2HEALTH\2MANA_MAX\2MANA_REGEN\2MANA\2MOVEMENT_MAX\2MOVEMENT_REGEN\2MOVEMENT\2BLOOD\2BLOOD_MAX\2BLOOD_UPKEEP" --health mana move blood
 	Empire = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX" --more stuff
-	Other = "\2WORLD_TIME\2WORLD_SEASON\2OPPONENT_HEALTH"
+	Other = "\2WORLD_TIME\2WORLD_SEASON\2OPPONENT_HEALTH\2OPPONENT_HEALTH_MAX\2OPPONENT_LEVEL\2OPPONENT_NAME"
     Start = "\255\250\69\1REPORT"
 	Mid = Basic..Primary..Secondary..Bars..Skills..Empire..Other
 	End = "\2\255\240"
@@ -2307,7 +2281,10 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
 
     --  redraw the map
     --draw_minimap ()
-
+	
+	-- redraw the enemy score window
+    draw_enemy_window ()
+	
     -- redraw the score sheet
     draw_score ()
 
@@ -2349,6 +2326,7 @@ function StoreVariable (MSDP_var, MSDP_val)
     create_layout ()
     SendPkt ("\255\250\69\1PLUGIN_ID\2MUSHclient UI for EmpireMUD (version 0.3)\255\240")
   else -- store the variable
+    if msdp_val ~= nil and msdp_var ~= nil then SetVariable("msdp_"..MSDP_var,msdp_val) else if msdp_var ~= nil then DeleteVariable("msdp_"..msdp_var) end end
     msdp[MSDP_var] = MSDP_val
   end -- if
 end -- function StoreVariable
