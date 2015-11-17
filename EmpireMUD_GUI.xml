@@ -1221,7 +1221,7 @@ function draw_score ()
   if msdp["TO_HIT"] ~= nil then
     if msdp["LEVEL"] ~= nil and msdp["DEX"] ~= nil and msdp["DODGE"] ~= nil then
       --calculate fun stats
-      local tohit_self = math.min(95, math.max(5, tonumber(msdp["TO_HIT"])-tonumber(msdp["DODGE"])))
+      local tohit_self = math.min(100, math.max(5, tonumber(msdp["TO_HIT"])-tonumber(msdp["DODGE"])))
       local trash_dodge = math.ceil(math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))
       local trash_dex = math.min(15, math.max(0, math.ceil(tonumber(msdp["LEVEL"])*20)))
       local tohit_trash = math.min(100, math.max(5, 5*(trash_dex-tonumber(msdp["DEX"]))+(tonumber(msdp["TO_HIT"])-trash_dodge)))
