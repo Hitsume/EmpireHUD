@@ -1055,7 +1055,7 @@ function draw_enemy_window()
   local maxi=msdp["OPPONENT_HEALTH_MAX"] or "100"
   local lev = msdp["OPPONENT_LEVEL"] or "0"
   local name = msdp["OPPONENT_NAME"] or ""
-  if gui_debug then Note(tonumber(curr)/tonumber(maxi)) end
+  if maxi == "0" then maxi="100" end --fixes some divide-by-zeroes when not fighting
   draw_mini_bar (0x00aaaa, 0x333333, enemy_window, 0, enemy_window_height/2, score_width, enemy_window_height/2, curr, maxi)
   outlined_text (colourGold, enemy_window, tostring(tonumber(curr)/tonumber(maxi)*100).."%", enemy_window_height*3/10, score_width-4, enemy_window_height/2, 0, 1)
   outlined_text (colourSilver, enemy_window, name.." (lvl "..lev..")", enemy_window_height*3/10, 0, 0, score_width)
