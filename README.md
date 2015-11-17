@@ -17,4 +17,4 @@ unreliable, especially in outdoor areas, however.
 If you put the folder in a different place and are getting spammed with notes, you can change where the plugin will
 search for images in the variables near the top of the XML file (look for 'path = "EmpireHUD"').
 
-Screenshot showing recommended location (Windows 7): http://puu.sh/loH7c/0bf804b777.png
+Screenshot showing recommended location (Windows 7): http://puu.sh/loHlT/e4867f77aa.png
