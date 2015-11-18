@@ -476,7 +476,7 @@ function create_layout ()
                 score_left-score_border,         -- left
                 15-score_border,    -- top
                 score_width+2*score_border,        -- width
-                score_top-score_border-5,        	-- depth
+                score_top-score_border-5,            -- depth
                 12,         -- center it (ignored anyway) 
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
@@ -491,7 +491,7 @@ function create_layout ()
                 12,         -- center it (ignored anyway) 
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
-				
+                
   draw_borders(enemy_border_window, score_width+15, score_top-score_border-5-15)
   outlined_text(colourGold, enemy_border_window, "Enemy", 9, score_border, 0, score_width)
   if WindowLoadImage (enemy_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
@@ -534,7 +534,7 @@ function create_layout ()
                 score_left, -- left
                 score_top,  -- top
                 score_width,-- width
-                height, 	-- depth
+                height,     -- depth
                 12,         -- center it (ignored anyway) 
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
@@ -762,8 +762,8 @@ function draw_energy_bars ()
     local type = "Health"
     colour = 0x0000AA
     colour2 = 0x000033
-	colour3 = 0x0000FF
-	colour4 = 0xAAAAAA
+    colour3 = 0x0000FF
+    colour4 = 0xAAAAAA
     draw_energy_bar(type, colour, colour2, colour3, colour4, health_window, current_health, max_health, last_health, health_regen)
   end -- if
   --update the "previous value"
@@ -788,8 +788,8 @@ function draw_energy_bars ()
     local type = "Mana"
     colour = 0xAA0000
     colour2 = 0x330000
-	colour3 = 0xFF0000
-	colour4 = 0xAAAAAA
+    colour3 = 0xFF0000
+    colour4 = 0xAAAAAA
     draw_energy_bar(type, colour, colour2, colour3, colour4, mana_window, current_mana, max_mana, last_mana, mana_regen)
   end -- if
   --update the "previous time"
@@ -814,8 +814,8 @@ function draw_energy_bars ()
     local type = "Move"
     colour = 0x00AA00
     colour2 = 0x003300
-	colour3 = 0x00FF00
-	colour4 = 0xAAAAAA
+    colour3 = 0x00FF00
+    colour4 = 0xAAAAAA
     draw_energy_bar(type, colour, colour2, colour3, colour4, movement_window, current_movement, max_movement, last_movement, movement_regen)
   end -- if
   --update the "previous value"
@@ -845,11 +845,11 @@ function draw_energy_bars ()
     colour = 0x0000CC
     colour2 = 0x000033
     draw_energy_bar(type, colour, colour2, colour3, colour4, blood_window, current_blood, max_blood, last_blood, blood_regen)
-	WindowShow(blood_window, true)
-	no_blood = false --used to position the rest of the score
+    WindowShow(blood_window, true)
+    no_blood = false --used to position the rest of the score
   else
     no_blood = true
-	WindowShow(blood_window, false) --hide the blood bar
+    WindowShow(blood_window, false) --hide the blood bar
   end -- if
   
   --update the "previous value"
@@ -874,7 +874,7 @@ function draw_mini_bar (colour, colour2, window, x_offset, y_offset, width, heig
   -- redraw the bars
   if current > 0 then
     --ceil is required to avoid very nearly empty bars appearing full
-	--(if filled is small enough to make filled*width a fraction)
+    --(if filled is small enough to make filled*width a fraction)
     WindowGradient (window, x_offset, y_offset-1, math.ceil(filled*width)+x_offset, y_offset+height/2, colourBlack, colour, 2)
     WindowGradient (window, x_offset, y_offset+height/2, math.ceil(filled*width)+x_offset, y_offset+height+1, colour, colourBlack, 2)
   end
@@ -909,7 +909,7 @@ function draw_xp_bar (skill, colour, colour2, window, x_offset, y_offset, curren
   -- redraw the bars
   if current > 0 then
     --ceil is required to avoid very nearly empty bars appearing full
-	--(if filled is small enough to make filled*xpbar_width a fraction)
+    --(if filled is small enough to make filled*xpbar_width a fraction)
     WindowGradient (window, x_offset, y_offset-1, math.ceil(filled*xpbar_width)+x_offset, y_offset+height/2, colourBlack, colour, 2)
     WindowGradient (window, x_offset, y_offset+height/2, math.ceil(filled*xpbar_width)+x_offset, y_offset+height+1, colour, colourBlack, 2)
   end
@@ -960,7 +960,7 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
     regentime_string = "Never."
   else
     regentime = math.ceil((energy_max[type]-energy_current[type])/(tonumber(regen)))*5
-	if regentime >= 60 then regentime_string = seconds_to_minutes(regentime).."." else regentime_string = regentime.." seconds." end
+    if regentime >= 60 then regentime_string = seconds_to_minutes(regentime).."." else regentime_string = regentime.." seconds." end
     --"25 seconds." or "3:35."
   end
   --set the tooltip
@@ -968,13 +968,13 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
   local line2 = ""
   if type == "Blood" then
     if tonumber(regen) < 0 then
-		line2 = "\nWill last: "..regentime_string
-	end
-	line1 = "Spending "..(tonumber(regen)*-1).." per 75 seconds."
+        line2 = "\nWill last: "..regentime_string
+    end
+    line1 = "Spending "..(tonumber(regen)*-1).." per 75 seconds."
   else
     if tonumber(regentime) > 0 then
-	  line2 = "\nWill be full in: "..regentime_string
-	end
+      line2 = "\nWill be full in: "..regentime_string
+    end
     line1 = "Regenerating "..regen.." per 5 seconds."
   end
   WindowHotspotTooltip(window, "hs_tooltip", line1..line2)
@@ -1009,12 +1009,12 @@ function update_bar(type, colour, colour2, colour3, colour4, window)
   if not colour or not colour2 or not colour3 or not colour4 or not window then return end
     if energy_max[type] > 0 then
       filled = energy_current[type] / energy_max[type]
-	  filled_prev = energy_prev[type] / energy_max[type]
-	  percent = energy_current[type]/energy_max[type]*100
+      filled_prev = energy_prev[type] / energy_max[type]
+      percent = energy_current[type]/energy_max[type]*100
     else -- avoid division by zero
       filled = 0
-	  filled_prev = 0
-	  percent = 0
+      filled_prev = 0
+      percent = 0
     end -- if
     WindowGradient (window, offset, -1, energybar_width+offset, height/2, colourBlack, colour2, 2)
     WindowGradient (window, offset, height/2, energybar_width+offset, height+1, colour2, colourBlack, 2)
@@ -1022,15 +1022,15 @@ function update_bar(type, colour, colour2, colour3, colour4, window)
       --draw order
       WindowGradient (window, offset, -1, math.ceil(filled*energybar_width), height/2, colourBlack, colour, 2)
       WindowGradient (window, offset, height/2, math.ceil(filled*energybar_width), height+1, colour, colourBlack, 2)
-	  local left = filled*energybar_width+offset
-	  local right = filled_prev*energybar_width
-	  --are we decreasing?
-	  if right<left then local temp=right right=left left=temp else colour3 = colour4 end
-	  if math.abs(left-right)>=1 then --prevents silliness
+      local left = filled*energybar_width+offset
+      local right = filled_prev*energybar_width
+      --are we decreasing?
+      if right<left then local temp=right right=left left=temp else colour3 = colour4 end
+      if math.abs(left-right)>=1 then --prevents silliness
         WindowGradient (window, left, -1, right, height/2, colourBlack, colour3, 2)
         WindowGradient (window, left, height/2, right, height+1, colour3, colourBlack, 2)
-	  end
-	  energy_prev[type] = (energy_prev[type]*energybar_update_ratio)+(energy_current[type]*(1-energybar_update_ratio))
+      end
+      energy_prev[type] = (energy_prev[type]*energybar_update_ratio)+(energy_current[type]*(1-energybar_update_ratio))
     end -- if
     -- write the information inside
     outlined_text (colourGold, window, type, 9, 3+offset, (height-14)/2, 0)
@@ -1089,7 +1089,7 @@ function draw_score ()
   --draw the time image
   if WindowLoadImage (score_window, "time", GetInfo (66) .. path .. "/time/"..t..".png") == eOK then
     success = true
-	draw_text = false
+    draw_text = false
   elseif WindowLoadImage (score_window, "time", GetInfo (66) .. path .. "/time/TimeDefault.png") == eOK then
     success = true
   end    
@@ -1106,7 +1106,7 @@ function draw_score ()
   draw_text = true
   if WindowLoadImage (score_window, "season", GetInfo (66) .. path .. "/time/"..s..".png") == eOK then
     success = true
-	draw_text = false
+    draw_text = false
   elseif WindowLoadImage (score_window, "season", GetInfo (66) .. path .. "/time/SeasonDefault.png") == eOK then
     success = true
   end    
@@ -1126,13 +1126,13 @@ function draw_score ()
   y_offset = y_offset + 18
   if msdp["EMPIRE_NAME"] ~= nil and msdp["EMPIRE_RANK"] ~= nil then
     --are we in an empire?
-	local text
-	if msdp["EMPIRE_NAME"] ~= "" and msdp["EMPIRE_RANK"] ~= "" then
-	  text = '<'..msdp["EMPIRE_RANK"]..' of '..msdp["EMPIRE_NAME"]..'>'
-	else
-	  text = '<Adventurer>'
-	end
-	outlined_text (colourSilver, score_window, text, 7, 0, y_offset, score_width)
+    local text
+    if msdp["EMPIRE_NAME"] ~= "" and msdp["EMPIRE_RANK"] ~= "" then
+      text = '<'..msdp["EMPIRE_RANK"]..' of '..msdp["EMPIRE_NAME"]..'>'
+    else
+      text = '<Adventurer>'
+    end
+    outlined_text (colourSilver, score_window, text, 7, 0, y_offset, score_width)
   end -- if
   y_offset = y_offset + 14
   local territory_height = 8
@@ -1146,13 +1146,13 @@ function draw_score ()
   end
   if msdp["EMPIRE_TERRITORY"] ~= nil and msdp["EMPIRE_TERRITORY_MAX"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"] ~= nil then
     local territory = tonumber(msdp["EMPIRE_TERRITORY"])
-	local maxterritory = tonumber(msdp["EMPIRE_TERRITORY_MAX"])
-	local outside = tonumber(msdp["EMPIRE_TERRITORY_OUTSIDE"])
-	local maxoutside = tonumber(msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"])
-	local territoryfree = maxterritory-territory
-	local outsidefree = maxoutside - outside
-	local tooltip = "Total territory: "..territory.."/"..maxterritory.." ("..math.floor(territory/maxterritory*100).."%) - "..territoryfree.." left.\n"
-	local tooltip = tooltip.."Outside territory: "..outside.."/"..maxoutside.." ("..math.floor(outside/maxoutside*100).."%) - "..outsidefree.." left."
+    local maxterritory = tonumber(msdp["EMPIRE_TERRITORY_MAX"])
+    local outside = tonumber(msdp["EMPIRE_TERRITORY_OUTSIDE"])
+    local maxoutside = tonumber(msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"])
+    local territoryfree = maxterritory-territory
+    local outsidefree = maxoutside - outside
+    local tooltip = "Total territory: "..territory.."/"..maxterritory.." ("..math.floor(territory/maxterritory*100).."%) - "..territoryfree.." left.\n"
+    local tooltip = tooltip.."Outside territory: "..outside.."/"..maxoutside.." ("..math.floor(outside/maxoutside*100).."%) - "..outsidefree.." left."
     WindowHotspotTooltip(score_window, "hs_terr", tooltip)
   end
   y_offset = y_offset + territory_height/2
@@ -1160,7 +1160,7 @@ function draw_score ()
   WindowMoveHotspot(score_window, "hs_level", 0, y_offset+2, score_width, y_offset+14)
   if msdp["LEVEL"] and msdp["SKILL_LEVEL"] and msdp["GEAR_LEVEL"] and msdp["CRAFTING_LEVEL"] then
     local tooltip = "Combat ["..msdp["LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..msdp["GEAR_LEVEL"].." (gear)\n"
-	tooltip = tooltip.."Crafting ["..msdp["CRAFTING_LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..(tonumber(msdp["CRAFTING_LEVEL"])-tonumber(msdp["SKILL_LEVEL"])).." (gear)"
+    tooltip = tooltip.."Crafting ["..msdp["CRAFTING_LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..(tonumber(msdp["CRAFTING_LEVEL"])-tonumber(msdp["SKILL_LEVEL"])).." (gear)"
     WindowHotspotTooltip(score_window, "hs_level", tooltip)
   end
   text_line = 'Level '..msdp["LEVEL"]..' '..msdp["CLASS"]
@@ -1174,24 +1174,24 @@ function draw_score ()
   
   draw_stat = function(stat)
     local fancystat = string.upper(string.sub(stat, 1, 1))..string.lower(string.sub(stat, 2))
-	local lowerstat = string.lower(stat)
-	outlined_text (colourGold, score_window, fancystat..":", 9, 5, y_offset, 0)
+    local lowerstat = string.lower(stat)
+    outlined_text (colourGold, score_window, fancystat..":", 9, 5, y_offset, 0)
     WindowMoveHotspot(score_window, "hs_"..lowerstat, 0, y_offset, x_offset-40, y_offset+12)
     WindowHotspotTooltip(score_window, "hs_"..lowerstat, "Not working properly.")
     if msdp[stat] ~= nil and msdp[stat.."_PERM"] ~= nil then
-	  if stat == "STR" then
+      if stat == "STR" then
          WindowHotspotTooltip(score_window, "hs_str", "Min: 1. Base: "..msdp["STR_PERM"]..". Max: 15.\nProviding +"..msdp["STR"].." physical damage.")
-	  elseif stat == "DEX" then
+      elseif stat == "DEX" then
          WindowHotspotTooltip(score_window, "hs_dex", "Min: 0. Base: "..msdp["DEX_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["DEX"])*5).." To-hit & Dodge.")
-	  elseif stat == "INT" then
+      elseif stat == "INT" then
          WindowHotspotTooltip(score_window, "hs_int", "Min: 1. Base: "..msdp["INT_PERM"]..". Max: 15.\nProviding +"..msdp["INT"].." magical damage.")
-	  elseif stat == "WIT" then
+      elseif stat == "WIT" then
          WindowHotspotTooltip(score_window, "hs_wit", "Min: 0. Base: "..msdp["WIT_PERM"]..". Max: 15.\nProviding "..(tonumber(msdp["WIT"])*0.025*100).."% faster attack speed.")
-	  elseif stat == "CHA" then
+      elseif stat == "CHA" then
          WindowHotspotTooltip(score_window, "hs_cha", "Min: 1. Base: "..msdp["CHA_PERM"]..". Max: 15.")
-	  elseif stat == "GRT" then
+      elseif stat == "GRT" then
          WindowHotspotTooltip(score_window, "hs_grt", "Min: 0. Base: "..msdp["GRT_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["GRT"])*35).." territory.")
-	  end
+      end
       colour = colourSilver
       --convert to numbers to allow comparison
       st = tonumber(msdp[stat])
@@ -1238,7 +1238,7 @@ function draw_score ()
       local boss_dex = math.min(15, math.max(0, math.ceil(msdp["LEVEL"]*20*1.25+1.25+2)))
       local tododge_boss = math.min(75, math.max(0, 5*(boss_dex-tonumber(msdp["DEX"]))+(tonumber(msdp["DODGE"])-boss_tohit)))
       WindowHotspotTooltip(score_window, "hs_dodge", "Chance to dodge yourself: "..tododge_self.."%\nChance to dodge trash (your level): "..tododge_trash.."%\nChance to dodge boss (your level): "..tododge_boss.."%")
-	end
+    end
     outlined_text (colourSilver, score_window, msdp["DODGE"], 9, 65+x_offset, y_offset, 0)
   end -- if
 
@@ -1270,14 +1270,14 @@ function draw_score ()
       local max_resist = tonumber(msdp["LEVEL"])/2
       local phys = tonumber(msdp["RESIST_PHYSICAL"])
       local magic = tonumber(msdp["RESIST_MAGICAL"])
-	  local resisted_p = 0
-	  local resisted_m = 0
+      local resisted_p = 0
+      local resisted_m = 0
       if tonumber(phys)>max_resist/2 then
-	    local use_resist = math.min(max_resist, phys)
+        local use_resist = math.min(max_resist, phys)
         resisted_p = ((use_resist - (max_resist/2.0)) / (max_resist / 2.0))/4
       end
       if tonumber(magic)>max_resist/2 then
-	    local use_resist = math.min(max_resist, magic)
+        local use_resist = math.min(max_resist, magic)
         resisted_m = ((use_resist - (max_resist/2.0)) / (max_resist / 2.0))/4
       end
       WindowHotspotTooltip(score_window, "hs_resist", "Physical resistance (at your level): "..(resisted_p*100).."%\nMagical resistance (at your level): "..(resisted_m*100).."%")
@@ -1299,7 +1299,7 @@ function draw_score ()
     WindowMoveHotspot(score_window, "hs_phys", x_offset, y_offset, (score_width+x_offset*2)/3, y_offset+32)
     outlined_text (colourSilver, score_window, msdp["BONUS_PHYSICAL"], 9, x_offset+5, 20+y_offset, 0)
     WindowMoveHotspot(score_window, "hs_magic", (score_width+x_offset*2)/3, y_offset, (score_width*2+x_offset)/3, y_offset+32)
-	outlined_text (colourSilver, score_window, msdp["BONUS_MAGICAL"], 9, x_offset, 20+y_offset, (score_width-5)-x_offset)
+    outlined_text (colourSilver, score_window, msdp["BONUS_MAGICAL"], 9, x_offset, 20+y_offset, (score_width-5)-x_offset)
     WindowMoveHotspot(score_window, "hs_heal", (score_width*2+x_offset)/3, y_offset, score_width, y_offset+32)
     outlined_text (colourSilver, score_window, msdp["BONUS_HEALING"], 9, score_width-8, 20+y_offset, 0, true)
   end -- if
@@ -1318,14 +1318,14 @@ function draw_score ()
   if msdp["BONUS_EXP"] and tonumber(msdp["BONUS_EXP"]) > 0 then
     local size = 10
     draw_mini_bar (0x888800, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, xpbar_width, size, msdp["BONUS_EXP"], 15)
-	if tonumber(msdp["BONUS_EXP"])>15 then
-	  draw_mini_bar (0xFFFF00, 0xAAAA00, score_window, (score_width-xpbar_width)/2, y_offset, xpbar_width, size, tonumber(msdp["BONUS_EXP"])-15, 15)
-	end
-	outlined_text (colourSilver, score_window, msdp["BONUS_EXP"], size-4, 27, y_offset-(size-10)/2, 0, true)	
-	outlined_text (colourSilver, score_window, "Bonus experience points", size-4, 33, y_offset-(size-10)/2, 0)
-	outlined_text (colourSilver, score_window, math.ceil(tonumber(msdp["BONUS_EXP"]/15)*100-0.5).."%", size-4, score_width-3, y_offset-(size-10)/2, 0, true)
+    if tonumber(msdp["BONUS_EXP"])>15 then
+      draw_mini_bar (0xFFFF00, 0xAAAA00, score_window, (score_width-xpbar_width)/2, y_offset, xpbar_width, size, tonumber(msdp["BONUS_EXP"])-15, 15)
+    end
+    outlined_text (colourSilver, score_window, msdp["BONUS_EXP"], size-4, 27, y_offset-(size-10)/2, 0, true)    
+    outlined_text (colourSilver, score_window, "Bonus experience points", size-4, 33, y_offset-(size-10)/2, 0)
+    outlined_text (colourSilver, score_window, math.ceil(tonumber(msdp["BONUS_EXP"]/15)*100-0.5).."%", size-4, score_width-3, y_offset-(size-10)/2, 0, true)
     --draw_xp_bar ("Bonus experience", 0xAAAA00, 0x333300, score_window, (score_width-xpbar_width)/2, y_offset, msdp["BONUS_EXP"], 15, msdp["BONUS_EXP"])
-	y_offset = y_offset + size+2
+    y_offset = y_offset + size+2
   end
   local spacing = xpbar_height+2 + 0
   local skills = {}
@@ -1337,68 +1337,68 @@ function draw_score ()
   if hotspots then
     for _,v in ipairs (hotspots) do 
       if string.sub(v,1,string.len(skill_hotspot_prefix)) == skill_hotspot_prefix then
-	    table.insert(hotspots_skills, v)
-	  end
-	end
+        table.insert(hotspots_skills, v)
+      end
+    end
   end
   if skill_data ~= nil then
     local a = {}
     for n in pairs(skill_data) do table.insert(a, n) end
     table.sort(a) --this hack sorts skills alphabetically
     for _,name in ipairs(a) do
-	  local data = skill_data[name]
-	  table.insert(skills, name)
+      local data = skill_data[name]
+      table.insert(skills, name)
       --debug info
       --if data ~= nil then for k,v in pairs(data) do Note(k..": "..v) end else Note("no skill data for "..sk) end
-	  --draw skill:
+      --draw skill:
       if data ~= nil and data["EXP"] ~= nil and data["LEVEL"] ~= nil then
         if tonumber(data["LEVEL"])>0 or tonumber(data["EXP"])>0 then
           if max_level(data["LEVEL"]) then colour = colourMax1 colour2 = colourMax2 elseif data["NOSKILL"]=="1" then colour = colourBad1 colour2 = colourBad2 else colour = colourNormal1 colour2 = colourNormal2 end
           draw_xp_bar (name, colour, colour2, score_window, (score_width-xpbar_width)/2, y_offset, data["EXP"], 100, data["LEVEL"])
           local found = false
-		  --find the hotspot
-		  for _,v in ipairs(hotspots_skills) do
-		    if string.lower(v)==string.lower(skill_hotspot_prefix)..string.lower(name) then found = true break end
-		  end
-		  --move it into place, or create it if not found
-		  if not found then
---		    Note("Adding new tooltip "..skill_hotspot_prefix..string.lower(name))
-		    WindowAddHotspot(score_window, skill_hotspot_prefix..string.lower(name), (score_width-xpbar_width)/2, y_offset-1, (score_width-xpbar_width)/2+xpbar_width, y_offset+spacing-1, "", "", "", "", "", name, 12, 0);
-		  else
-		    WindowMoveHotspot(score_window, skill_hotspot_prefix..string.lower(name), (score_width-xpbar_width)/2, y_offset-1, (score_width-xpbar_width)/2+xpbar_width, y_offset+spacing-1)
-		  end
-		  --set the tooltip
-		  local noskilled = ""
-		  if data["NOSKILL"] == "1" then
-		    noskilled = "\nSkill gains disabled (noskill)."
-		  end
-		  local resets = "No skill resets available."
-		  if data["RESETS"] ~= nil and tonumber(data["RESETS"]) > 0 then
-		    resets = "Skill resets available: "..data["RESETS"].."."
-		  end
-		  local xp = ""
-		  if max_level(data["LEVEL"]) then
-		    xp = " (max level)."
-		  else
-		    xp = " with "..data["EXP"].."% chance to gain."
-		  end
-		  WindowHotspotTooltip(score_window, skill_hotspot_prefix..string.lower(name), name..": Level "..data["LEVEL"]..xp.."\n"..resets..noskilled)
+          --find the hotspot
+          for _,v in ipairs(hotspots_skills) do
+            if string.lower(v)==string.lower(skill_hotspot_prefix)..string.lower(name) then found = true break end
+          end
+          --move it into place, or create it if not found
+          if not found then
+--            Note("Adding new tooltip "..skill_hotspot_prefix..string.lower(name))
+            WindowAddHotspot(score_window, skill_hotspot_prefix..string.lower(name), (score_width-xpbar_width)/2, y_offset-1, (score_width-xpbar_width)/2+xpbar_width, y_offset+spacing-1, "", "", "", "", "", name, 12, 0);
+          else
+            WindowMoveHotspot(score_window, skill_hotspot_prefix..string.lower(name), (score_width-xpbar_width)/2, y_offset-1, (score_width-xpbar_width)/2+xpbar_width, y_offset+spacing-1)
+          end
+          --set the tooltip
+          local noskilled = ""
+          if data["NOSKILL"] == "1" then
+            noskilled = "\nSkill gains disabled (noskill)."
+          end
+          local resets = "No skill resets available."
+          if data["RESETS"] ~= nil and tonumber(data["RESETS"]) > 0 then
+            resets = "Skill resets available: "..data["RESETS"].."."
+          end
+          local xp = ""
+          if max_level(data["LEVEL"]) then
+            xp = " (max level)."
+          else
+            xp = " with "..data["EXP"].."% chance to gain."
+          end
+          WindowHotspotTooltip(score_window, skill_hotspot_prefix..string.lower(name), name..": Level "..data["LEVEL"]..xp.."\n"..resets..noskilled)
           y_offset = y_offset + spacing
-	    end
-	  else
-	    --No specific skill data
+        end
+      else
+        --No specific skill data
       end
-	end
-	--Remove old skill hotspots
-	for _,spot in ipairs(hotspots_skills) do
-	  local found
-	  for _,skill in ipairs(skills) do
+    end
+    --Remove old skill hotspots
+    for _,spot in ipairs(hotspots_skills) do
+      local found
+      for _,skill in ipairs(skills) do
         if string.find(string.lower(spot), string.lower(skill)) then
-		  found = true
+          found = true
         end
       end
       if not found then WindowDeleteHotspot(score_window, spot) end
-	end
+    end
   end
   
   right = GetInfo (281) + right_offset
@@ -1422,19 +1422,19 @@ function split_nested_arrays (msdp_data)
   local start = 1
   for position = 1, string.len(msdp_data) do
     local char = string.sub(msdp_data, position, position)
-	if char == '\001' then
-	  --start of a new value, but we actually handle this in the \004 case
-	end
-	if char == '\003' then
-	  depth = depth + 1
-	elseif char == '\004' then
-	  depth = depth - 1
-	  if depth == 0 then
-	    data[index] = string.sub(msdp_data, start, position)
-		index = index + 1
-		start = position + 1
-	  end
-	end
+    if char == '\001' then
+      --start of a new value, but we actually handle this in the \004 case
+    end
+    if char == '\003' then
+      depth = depth + 1
+    elseif char == '\004' then
+      depth = depth - 1
+      if depth == 0 then
+        data[index] = string.sub(msdp_data, start, position)
+        index = index + 1
+        start = position + 1
+      end
+    end
   end
   return data
 end
@@ -1459,7 +1459,7 @@ function unpack_array(msdp_data)
   if msdp_data == "" then return {} end
   if string.sub(msdp_data, 1, 1) ~= "\1" then
     msdp_data = "\1"..msdp_data --this should be here in the first place, it's what bIgnore removes
-	--but affects assumes it's not
+    --but affects assumes it's not
   end
   local position = 1
   local data = {}
@@ -1475,84 +1475,84 @@ function unpack_array(msdp_data)
   if enable_debug then Note(filter(msdp_data)) end
   while position<=string.len(msdp_data) do
     char = string.sub(msdp_data, position, position)
-	if (char == '\1' or (position==string.len(msdp_data) and is_value)) and depth==0 then
-	  if enable_debug then Note("Hit 1. End of: "..str) end
-	  if position==string.len(msdp_data) then str = str..char if enable_debug then Note("Hit end of string.") end end
-	  if is_value then
-	    value = str
-		if key ~= "" and value ~= "" then
+    if (char == '\1' or (position==string.len(msdp_data) and is_value)) and depth==0 then
+      if enable_debug then Note("Hit 1. End of: "..str) end
+      if position==string.len(msdp_data) then str = str..char if enable_debug then Note("Hit end of string.") end end
+      if is_value then
+        value = str
+        if key ~= "" and value ~= "" then
             add = true
-		end
-	  elseif is_value then --two keys in a row...?
+        end
+      elseif is_value then --two keys in a row...?
          --ignore
-	  end
-	  str = ""
-	  is_value = false
-	  is_key = true
-	elseif (char == '\2' or (position==string.len(msdp_data) and is_key)) and depth==0 then
-	  if enable_debug and char == '\2' then Note("Hit 2. End of: "..str) end
-	  if position==string.len(msdp_data) then str = str..char if enable_debug then Note("Hit end of string.") end end
-	  if is_key then
-	    key = str
-		if key ~= "" and value ~= "" then
+      end
+      str = ""
+      is_value = false
+      is_key = true
+    elseif (char == '\2' or (position==string.len(msdp_data) and is_key)) and depth==0 then
+      if enable_debug and char == '\2' then Note("Hit 2. End of: "..str) end
+      if position==string.len(msdp_data) then str = str..char if enable_debug then Note("Hit end of string.") end end
+      if is_key then
+        key = str
+        if key ~= "" and value ~= "" then
             add = true
-	    end
-	  elseif is_value then --two values in a row...?
+        end
+      elseif is_value then --two values in a row...?
         --ignore for now
       end
-	  str = ""
-	  is_key = false
-	  is_value = true
+      str = ""
+      is_key = false
+      is_value = true
     elseif char == '\3' then
-	  if enable_debug then Note("Hit 3.") end
-	  depth = depth + 1 --sigh
-	elseif char == '\4' then
-	  if enable_debug then Note("Hit 4.") end
+      if enable_debug then Note("Hit 3.") end
+      depth = depth + 1 --sigh
+    elseif char == '\4' then
+      if enable_debug then Note("Hit 4.") end
       depth = depth - 1 --whew
       if depth == 0 then
-	    if is_value then
-		  if str == "" then value = {} else value = unpack_array(str) end --if we get an empty array (room has no exits)
-		  if key ~= "" and value ~= "" then
+        if is_value then
+          if str == "" then value = {} else value = unpack_array(str) end --if we get an empty array (room has no exits)
+          if key ~= "" and value ~= "" then
             add = true
-		  end
-		end
-	  end
-	  str = ""
-	else
-	  --if is_key and enable_debug then Tell("k") elseif is_value and enable_debug then Tell("v") end
-	  str = str..char
-	end
-	  
-	if add then
-	  if type(value) == "string" then
-	    if enable_debug then Note("Added "..key..":"..value) end
-	  else
-	    if enable_debug then Note("Added "..key..": not string") end
+          end
+        end
       end
-	  if data[key] ~= nil then --stops same-named fields from overwriting: common with script dots
+      str = ""
+    else
+      --if is_key and enable_debug then Tell("k") elseif is_value and enable_debug then Tell("v") end
+      str = str..char
+    end
+      
+    if add then
+      if type(value) == "string" then
+        if enable_debug then Note("Added "..key..":"..value) end
+      else
+        if enable_debug then Note("Added "..key..": not string") end
+      end
+      if data[key] ~= nil then --stops same-named fields from overwriting: common with script dots
         for disamb = 1, 256 do
-		  if data[key.." ("..disamb..")"] == nil then
-	        key = key .." ("..disamb..")"
-			break
-	      end
-	    end
-	  end
-	  data[key] = value
-	  key = ""
-	  value = ""
-	  add = false
-	end
-	position = position + 1
+          if data[key.." ("..disamb..")"] == nil then
+            key = key .." ("..disamb..")"
+            break
+          end
+        end
+      end
+      data[key] = value
+      key = ""
+      value = ""
+      add = false
+    end
+    position = position + 1
   end
   --debug:
   if enable_debug then
     for k, v in pairs(data) do
       if type(v) == "table" then
         for u, i in pairs(v) do
-	      Note(k..": {u:"..u..",i:"..i.."}")
-	    end
-	  else
-	    Note(k..":"..v)
+          Note(k..": {u:"..u..",i:"..i.."}")
+        end
+      else
+        Note(k..":"..v)
       end
     end
   end
@@ -1644,7 +1644,7 @@ function init_cooldowns (data)
   end -- if  
   --debug
   --AddCooldown("ability1","64")
-  --AddCooldown("ability2","128")	
+  --AddCooldown("ability2","128")    
   --AddCooldown("ability3","32")
   --AddCooldown("lightningbolt","9")
   --AddCooldown("sunshock","9")
@@ -1681,14 +1681,14 @@ function sort_cooldowns ()
   for i = 1, CooldownMax do
     --I have no idea why this was happening but it's causing a lot of errors
     if CooldownName[i] == nil then return end
-	if CooldownDuration[i] == nil then return end
+    if CooldownDuration[i] == nil then return end
     t[i] = {CooldownName[i], tonumber(CooldownDuration[i])}
---	Note(CooldownName[i]..":"..CooldownDuration[i])
+--    Note(CooldownName[i]..":"..CooldownDuration[i])
   end
   table.sort(t, compare)
   for k, v in pairs(t) do
     CooldownName[k] = v[1]
-	CooldownDuration[k] = v[2]
+    CooldownDuration[k] = v[2]
   end
 end
 
@@ -1708,12 +1708,12 @@ function affect_click(hotspot_id)
   local id = 0
   if string.sub(hotspot_id, 1, len) == affect_window_prefix then
     id = tonumber(string.sub(hotspot_id, len+1))
-	AffectMode[id] = affect_mode_switch(AffectMode[i])
+    AffectMode[id] = affect_mode_switch(AffectMode[i])
   end
   local len = string.len(cooldown_window_prefix)
   if string.sub(hotspot_id, 1, len) == cooldown_window_prefix then
     id = tonumber(string.sub(hotspot_id, len+1))
-	CooldownMode[id] = affect_mode_switch(CooldownMode[i])
+    CooldownMode[id] = affect_mode_switch(CooldownMode[i])
   end
 end
 
@@ -1738,7 +1738,7 @@ function draw_dots (startx, starty)
     if k ~= nil then
       win = dot_window_prefix..i
       dot = "dot_"..i
-	  if v["STACKS"]==nil then Note("Stacks is nil for dot "..k) v["STACKS"]="1" end
+      if v["STACKS"]==nil then Note("Stacks is nil for dot "..k) v["STACKS"]="1" end
       -- draw the icons left to right, top to bottom
       if i > 1 then
 --[[        if offset_x == 0 then
@@ -1768,7 +1768,7 @@ function draw_dots (startx, starty)
       -- load the icon
       if WindowLoadImage (win, dot, GetInfo (66) .. path .. "/affects/" .. k .. ".png") == eOK then
         check (WindowDrawImage (win, dot, 1, 1, 33, 33, 2))  -- exact name
-	  elseif WindowLoadImage (win, dot, GetInfo (66) .. path .. "/affects/" .. v["TYPE"] .. ".png") == eOK then
+      elseif WindowLoadImage (win, dot, GetInfo (66) .. path .. "/affects/" .. v["TYPE"] .. ".png") == eOK then
         check (WindowDrawImage (win, dot, 1, 1, 33, 33, 2))  -- type (physical, poison etc.)
       elseif WindowLoadImage (win, dot, GetInfo (66) .. path .. "/affects/default.png") == eOK then
         check (WindowDrawImage (win, dot, 1, 1, 33, 33, 2))  -- draw the default affect icon instead
@@ -1776,13 +1776,13 @@ function draw_dots (startx, starty)
         Note( "Missing spell icons.")
         return
       end -- if
-	  
+      
       if tonumber(v["DURATION"]) < 10 then --1 digit
         offset = 18
       elseif tonumber(v["DURATION"]) < 60 then --2 digits
         offset = 22
       elseif tonumber(v["DURATION"]) < 600 then --3 digits
-	    offset = 26
+        offset = 26
       else -- 4 digits
         offset = 30
       end -- if
@@ -1798,15 +1798,15 @@ function draw_dots (startx, starty)
         outlined_text (colour, win, seconds_to_minutes(tonumber(v["DURATION"])), 6, offset, 21, 0, true) --4->32
       end -- if
       if tonumber(v["STACKS"])>0 then
-	    outlined_text (colour, win, "x"..v["STACKS"], 6, 3, 3, 0)
-	  end
+        outlined_text (colour, win, "x"..v["STACKS"], 6, 3, 3, 0)
+      end
       -- show the window
-	  if gui_on then
+      if gui_on then
         WindowShow (win, true)
       end
 
       -- create a hotspot over the timer
-	  local tooltip = k.."("..v["TYPE"]..")\n"..v["DAMAGE"].." damage ("..(tonumber(v["DAMAGE"])/5).." per second)."
+      local tooltip = k.."("..v["TYPE"]..")\n"..v["DAMAGE"].." damage ("..(tonumber(v["DAMAGE"])/5).." per second)."
       WindowAddHotspot(win, "hs_dot_"..i, 0, 0, 34, 34, "", "", "", "", "AffectMouseUp", tooltip, 1, 0)
     end -- if
   end -- for
@@ -1846,16 +1846,16 @@ function draw_cooldowns (startx, starty)
       cooldown = "cooldown_"..i
 
       -- draw the icons left to right, top to bottom
-	  local column_width = 36
-	  local row_height = 36
-	  local columns = 6
+      local column_width = 36
+      local row_height = 36
+      local columns = 6
       if i > 1 then
         if offset_x == 0 then
           offset_x = column_width
         elseif offset_x < columns * column_width then
-		  offset_x = offset_x + column_width
+          offset_x = offset_x + column_width
         else
-          offset_x = 0	
+          offset_x = 0    
           offset_y = offset_y + row_height
         end -- if
       end -- if
@@ -1881,13 +1881,13 @@ function draw_cooldowns (startx, starty)
         Note( "Missing spell icons.")
         return
       end -- if
-	  
+      
       if tonumber(CooldownDuration[i]) < 10 then --1 digit
         offset = 18
       elseif tonumber(CooldownDuration[i]) < 60 then --2 digits
         offset = 22
       elseif tonumber(CooldownDuration[i]) < 600 then --3 digits
-	    offset = 26
+        offset = 26
       else -- 4 digits
         offset = 30
       end -- if
@@ -1904,7 +1904,7 @@ function draw_cooldowns (startx, starty)
       end -- if
 
       -- show the window
-	  if gui_on then
+      if gui_on then
         WindowShow (win, true)
       end
 
@@ -1992,7 +1992,7 @@ function draw_affects ()
 
       if tonumber(AffectDuration[i]) < 0 then
         -- draw an infinity symbol
-		local start_x = 20
+        local start_x = 20
         outlined_text (colour, win, "O", 6, start_x, 21, 0)
         outlined_text (colour, win, "O", 6, start_x+5, 21, 0)
         -- go over the first 'O' again, removing the outline from the second 'O'
@@ -2003,7 +2003,7 @@ function draw_affects ()
       end -- if
 
       -- show the window
-	  if gui_on then
+      if gui_on then
         WindowShow (win, true)
       end
 
@@ -2025,12 +2025,12 @@ function outlined_text (colour, window, text, size, x, y, centre_width, rj)
     if centre_width > 0 then
       --right justify within the box
       width = WindowTextWidth (window, 'f', text)
-	  x = x + centre_width-width
-	else
-	  --right justify in general
+      x = x + centre_width-width
+    else
+      --right justify in general
       width = WindowTextWidth (window, 'f', text)
-	  x = x - width
-	end
+      x = x - width
+    end
   elseif centre_width > 0 then
     width = WindowTextWidth (window, 'f', text)
     x = x + ((centre_width-width) / 2)
@@ -2063,23 +2063,23 @@ function OnPluginTelnetRequest (neg_type, data)
   elseif neg_type == MSDP and data == "SENT_DO" then
     -- IAC SB MSDP response IAC SE 
     -- Split up for readability...
-	Basic = "\2CHARACTER_NAME\2CLASS\2LEVEL\2SKILL_LEVEL\2GEAR_LEVEL\2CRAFTING_LEVEL\2BONUS_EXP\2ROOM\2AFFECTS\2COOLDOWNS\2DOTS" --name class level exits affects
-	Primary = "\2STR\2INT\2WIT\2DEX\2CHA\2GRT\2STR_PERM\2INT_PERM\2WIT_PERM\2DEX_PERM\2CHA_PERM\2GRT_PERM" --6 primary stats
-	Secondary = "\2TO_HIT\2DODGE\2BLOCK\2RESIST_PHYSICAL\2RESIST_MAGICAL\2BONUS_PHYSICAL\2BONUS_MAGICAL\2BONUS_HEALING" --the secondary stats
-	--[[local sk = {"BATTLE","EMPIRE","HIGH_SORCERY","NATURAL_MAGIC","STEALTH","SURVIVAL","TRADE","VAMPIRE"}
-	local Skills = ""
-	for _, v in pairs(sk) do
-	  Skills = Skills.."\2"..v
-	end
-	Note(Skills)]]
+    Basic = "\2CHARACTER_NAME\2CLASS\2LEVEL\2SKILL_LEVEL\2GEAR_LEVEL\2CRAFTING_LEVEL\2BONUS_EXP\2ROOM\2AFFECTS\2COOLDOWNS\2DOTS" --name class level exits affects
+    Primary = "\2STR\2INT\2WIT\2DEX\2CHA\2GRT\2STR_PERM\2INT_PERM\2WIT_PERM\2DEX_PERM\2CHA_PERM\2GRT_PERM" --6 primary stats
+    Secondary = "\2TO_HIT\2DODGE\2BLOCK\2RESIST_PHYSICAL\2RESIST_MAGICAL\2BONUS_PHYSICAL\2BONUS_MAGICAL\2BONUS_HEALING" --the secondary stats
+    --[[local sk = {"BATTLE","EMPIRE","HIGH_SORCERY","NATURAL_MAGIC","STEALTH","SURVIVAL","TRADE","VAMPIRE"}
+    local Skills = ""
+    for _, v in pairs(sk) do
+      Skills = Skills.."\2"..v
+    end
+    Note(Skills)]]
     local Skills = "\2SKILLS"
-	Bars = "\2HEALTH_MAX\2HEALTH_REGEN\2HEALTH\2MANA_MAX\2MANA_REGEN\2MANA\2MOVEMENT_MAX\2MOVEMENT_REGEN\2MOVEMENT\2BLOOD\2BLOOD_MAX\2BLOOD_UPKEEP" --health mana move blood
-	Empire = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX" --more stuff
-	Other = "\2WORLD_TIME\2WORLD_SEASON\2OPPONENT_HEALTH\2OPPONENT_HEALTH_MAX\2OPPONENT_LEVEL\2OPPONENT_NAME"
+    Bars = "\2HEALTH_MAX\2HEALTH_REGEN\2HEALTH\2MANA_MAX\2MANA_REGEN\2MANA\2MOVEMENT_MAX\2MOVEMENT_REGEN\2MOVEMENT\2BLOOD\2BLOOD_MAX\2BLOOD_UPKEEP" --health mana move blood
+    Empire = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX" --more stuff
+    Other = "\2WORLD_TIME\2WORLD_SEASON\2OPPONENT_HEALTH\2OPPONENT_HEALTH_MAX\2OPPONENT_LEVEL\2OPPONENT_NAME"
     Start = "\255\250\69\1REPORT"
-	Mid = Basic..Primary..Secondary..Bars..Skills..Empire..Other
-	End = "\2\255\240"
-	--
+    Mid = Basic..Primary..Secondary..Bars..Skills..Empire..Other
+    End = "\2\255\240"
+    --
     SendPkt (Start..Mid..End) --I'm legitimately surprised I can send this much data at once without breaking something
     return true
   else -- another protocol
@@ -2124,14 +2124,14 @@ function got_room_exits ()  -- eg. "n,s"
   if err then Note(err) return end
   if s == nil then s = "ne,s,e,sw,w,se,nw,n" else--outdoors?
     local i=1
-	s=""
-	for k,v in pairs(room["EXITS"]) do
+    s=""
+    for k,v in pairs(room["EXITS"]) do
       if i>1 then
-	    s=s..","
+        s=s..","
       end
-	  i=i+1
-	  s=s..k
-	end
+      i=i+1
+      s=s..k
+    end
   end
   BroadcastPlugin (3, s)
 end -- got_room_exits
@@ -2153,14 +2153,14 @@ function got_full_exits ()  -- eg. "ne(8564),w(8428)"
   if err then Note(err) return end
   if s == nil then s="" else --outdoors? we can't get vnums
     local i=1
-	s=""
-	for k,v in pairs(room["EXITS"]) do
+    s=""
+    for k,v in pairs(room["EXITS"]) do
       if i>1 then
-	    s=s..","
+        s=s..","
       end
-	  i=i+1
-	  s=s..k.."("..v..")"
-	end
+      i=i+1
+      s=s..k.."("..v..")"
+    end
   end
   BroadcastPlugin (5, s)
 end -- got_full_exits
@@ -2239,9 +2239,9 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
     value = nil
     if debug_mode then
       Note('Raw data: ['..data..']')
-	  Note('Formatted: ['..filter(data)..']')
-	end
-	
+      Note('Formatted: ['..filter(data)..']')
+    end
+    
     for i=1,endpos,1 do
       if string.byte(data,i) == 1 and bTable == 0 then
         if variable ~= nil and value ~= nil then
@@ -2259,8 +2259,8 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
         bValue = true
       elseif string.byte(data,i) == 3 then
         bTable = bTable + 1
-		if bTable > 1 then
-		  if bName == true then
+        if bTable > 1 then
+          if bName == true then
             if variable == nil then
               variable = ""
             end -- if
@@ -2270,14 +2270,14 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
               value = ""
             end -- if
             value = value..string.sub(data,i,i)
-	      end -- if
-		else
+          end -- if
+        else
           bIgnore = true
         end
       elseif string.byte(data,i) == 4 then
         bTable = bTable - 1
-		if bTable > 0 then
-		  if bName == true then
+        if bTable > 0 then
+          if bName == true then
             if variable == nil then
               variable = ""
             end -- if
@@ -2287,8 +2287,8 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
               value = ""
             end -- if
             value = value..string.sub(data,i,i)
-	      end -- if
-		else
+          end -- if
+        else
 --        bIgnore = true
         end
       elseif bIgnore == true then
@@ -2315,10 +2315,10 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
 
     --  redraw the map
     --draw_minimap ()
-	
-	-- redraw the enemy score window
+    
+    -- redraw the enemy score window
     draw_enemy_window ()
-	
+    
     -- redraw the score sheet
     draw_score ()
 
@@ -2327,28 +2327,28 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
 
     -- redraw the spell affect icons
     draw_affects ()
-	--local test = get_room_string()
-	--if test then Note(test) end
---[[	if msdp["ROOM"] ~= nil and msdp["ROOM"] ~= "" then
+    --local test = get_room_string()
+    --if test then Note(test) end
+--[[    if msdp["ROOM"] ~= nil and msdp["ROOM"] ~= "" then
       room = unpack_array(msdp["ROOM"])
-	  Note("ROOM: "..msdp["ROOM"])
-	  Note("Unpacking ROOM")
+      Note("ROOM: "..msdp["ROOM"])
+      Note("Unpacking ROOM")
       if room and not room["EXITS"] then Note("We appear to be outdoors") end
-	  Note("Unpacked ROOM. Result:")
-	  for u, i in pairs(room) do
-	    if type(i)=="table" then
-		  Note(u)
-	      for k, v in pairs(i) do
-		    Note(k..": "..v)
-		  end
-		else
-		  Note(u..": "..i)
-		end
-	  end
+      Note("Unpacked ROOM. Result:")
+      for u, i in pairs(room) do
+        if type(i)=="table" then
+          Note(u)
+          for k, v in pairs(i) do
+            Note(k..": "..v)
+          end
+        else
+          Note(u..": "..i)
+        end
+      end
     end]]
     if GetPluginInfo ("c511a7e6a633f2da67d935d3", 17) then --hack-y automapper variant enabled
       for i = 1, 3 do for _,v in pairs(handlers) do v() end end --why this doesn't work the first time I have no idea...
-	end
+    end
     Redraw()
 
   end -- if
