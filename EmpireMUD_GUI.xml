@@ -493,7 +493,7 @@ function create_layout ()
                 0x000000))  -- background colour
 				
   draw_borders(enemy_border_window, score_width+15, score_top-score_border-5-15)
-  
+  outlined_text(colourGold, enemy_border_window, "Enemy", 9, score_border, 0, score_width)
   if WindowLoadImage (enemy_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
@@ -1051,14 +1051,22 @@ end
 
 function draw_enemy_window()
   check (WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1))  -- redraw the background
-  local curr=msdp["OPPONENT_HEALTH"] or "0"
-  local maxi=msdp["OPPONENT_HEALTH_MAX"] or "100"
+  local curr = msdp["OPPONENT_HEALTH"] or "0"
+  local maxi = msdp["OPPONENT_HEALTH_MAX"] or "0"
   local lev = msdp["OPPONENT_LEVEL"] or "0"
   local name = msdp["OPPONENT_NAME"] or ""
-  if maxi == "0" then maxi="100" end --fixes some divide-by-zeroes when not fighting
-  draw_mini_bar (0x00aaaa, 0x333333, enemy_window, 0, enemy_window_height/2, score_width, enemy_window_height/2, curr, maxi)
-  outlined_text (colourGold, enemy_window, tostring(tonumber(curr)/tonumber(maxi)*100).."%", enemy_window_height*3/10, score_width-4, enemy_window_height/2, 0, 1)
-  outlined_text (colourSilver, enemy_window, name.." (lvl "..lev..")", enemy_window_height*3/10, 0, 0, score_width)
+  local fighting = true
+  if maxi == "0" then maxi="100" end --setting maxi to 100 fixes some divide-by-zeroes when not fighting
+  if name == "" then
+    fighting = false
+  end
+  local text = "nothing"
+  if fighting then --or if you wanted to see the bar anyway?
+    text = name.." (lvl "..lev..")"
+    draw_mini_bar (0x00aaaa, 0x333333, enemy_window, 0, enemy_window_height/2, score_width, enemy_window_height/2, curr, maxi)
+    outlined_text (colourGold, enemy_window, tostring(tonumber(curr)/tonumber(maxi)*100).."%", enemy_window_height*3/10, score_width-4, enemy_window_height/2, 0, 1)
+  end
+  outlined_text (colourSilver, enemy_window, text, enemy_window_height*3/10, 0, 0, score_width)
 end
 
 -- fill the score
@@ -1117,7 +1125,14 @@ function draw_score ()
 
   y_offset = y_offset + 18
   if msdp["EMPIRE_NAME"] ~= nil and msdp["EMPIRE_RANK"] ~= nil then
-    outlined_text (colourSilver, score_window, '<'..msdp["EMPIRE_RANK"]..' of '..msdp["EMPIRE_NAME"]..'>', 7, 0, y_offset, score_width)
+    --are we in an empire?
+	local text
+	if msdp["EMPIRE_NAME"] ~= "" and msdp["EMPIRE_RANK"] ~= "" then
+	  text = '<'..msdp["EMPIRE_RANK"]..' of '..msdp["EMPIRE_NAME"]..'>'
+	else
+	  text = '<Adventurer>'
+	end
+	outlined_text (colourSilver, score_window, text, 7, 0, y_offset, score_width)
   end -- if
   y_offset = y_offset + 14
   local territory_height = 8
@@ -1388,7 +1403,8 @@ function draw_score ()
   
   right = GetInfo (281) + right_offset
   bottom = GetInfo (280) + bottom_offset
-  draw_cooldowns(score_left, top+y_offset+11)--(right+34, top+y_offset+11)
+  local inset = 4
+  draw_cooldowns(score_left+inset, top+y_offset+11+inset)--(right+34, top+y_offset+11)
 
 end -- draw_score
 
@@ -1509,7 +1525,7 @@ function unpack_array(msdp_data)
 	  
 	if add then
 	  if type(value) == "string" then
-	    if enable_debug then Note("Added"..key..":"..value) end
+	    if enable_debug then Note("Added "..key..":"..value) end
 	  else
 	    if enable_debug then Note("Added "..key..": not string") end
       end
@@ -1626,7 +1642,21 @@ function init_cooldowns (data)
   elseif index > CooldownMax then
     CooldownMax = index
   end -- if  
+  --debug
+  --AddCooldown("ability1","64")
+  --AddCooldown("ability2","128")	
+  --AddCooldown("ability3","32")
+  --AddCooldown("lightningbolt","9")
+  --AddCooldown("sunshock","9")
+  --AddCooldown("kick","6")
+  --AddCooldown("not-alternate","60")
 end -- function
+
+function AddCooldown(name, dur) --debug purposes only! bugs out a lot
+  table.insert(CooldownName, name)
+  table.insert(CooldownDuration, dur)
+  CooldownMax = CooldownMax + 1
+end
 
 function seconds_to_minutes (seconds)
   minutes = math.floor(seconds/60)
@@ -1786,6 +1816,7 @@ end --function
 
 function draw_cooldowns (startx, starty)
   cooldowns = msdp["COOLDOWNS"]
+  --test:
   if cooldowns == nil or cooldowns == "None" then
     for i=1,CooldownMax,1 do
       WindowShow (cooldown_window_prefix..i, false)
@@ -1805,6 +1836,7 @@ function draw_cooldowns (startx, starty)
   if CooldownMax > 1 then
     sort_cooldowns ()
   end
+
   offset_x = 0
   offset_y = 0
 
@@ -1814,16 +1846,17 @@ function draw_cooldowns (startx, starty)
       cooldown = "cooldown_"..i
 
       -- draw the icons left to right, top to bottom
+	  local column_width = 36
+	  local row_height = 36
+	  local columns = 6
       if i > 1 then
         if offset_x == 0 then
-          offset_x = 36
-        elseif offset_x == 36 then
-          offset_x = 72
-        elseif offset_x == 72 then
-          offset_x = 108
+          offset_x = column_width
+        elseif offset_x < columns * column_width then
+		  offset_x = offset_x + column_width
         else
-          offset_x = 0
-          offset_y = offset_y + 36
+          offset_x = 0	
+          offset_y = offset_y + row_height
         end -- if
       end -- if
 
@@ -1959,11 +1992,12 @@ function draw_affects ()
 
       if tonumber(AffectDuration[i]) < 0 then
         -- draw an infinity symbol
-        outlined_text (colour, win, "O", 6, 4, 21, 0)
-        outlined_text (colour, win, "O", 6, 9, 21, 0)
+		local start_x = 20
+        outlined_text (colour, win, "O", 6, start_x, 21, 0)
+        outlined_text (colour, win, "O", 6, start_x+5, 21, 0)
         -- go over the first 'O' again, removing the outline from the second 'O'
         WindowFont(win,'f',font,6,1,0,0,0)
-        WindowText(win,'f',"O",4,21,0,0,colour,0)
+        WindowText(win,'f',"O",start_x,21,0,0,colour,0)
       else -- write the duration
         outlined_text (colour, win, seconds_to_minutes(tonumber(AffectDuration[i])), 6, 32, 21, 0, true) --4->32
       end -- if
