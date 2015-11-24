@@ -2,10 +2,47 @@
 <!DOCTYPE muclient>
 
 <!-- TODO
-check cooldowns wrap in the right place (they don't)
 icons for stats?
 move gui show/hide to a button?
 investigate white line below logo (rarely visible)
+dots are starting at position 2 again
+
+Need icons for:
+radiance
+rejuvenate (cooldown and affect)
+bash
+backstab
+jab (cooldown and affect?)
+disarm (cooldown and affect)
+stunned
+shadowstep
+alternate
+teleport (home and city)
+summon (thugs, animals, guards, humans)
+blind (cooldown and affect)
+entangle (cooldown and affect)
+counterspell
+boost
+alacrity
+claws
+earthmeld
+majesty
+mummify?
+soulmask?
+weaken
+reward cooldown
+inspire affect
+vigor penalty affect
+phoenix rite affect
+dispel and cleanse cooldowns
+slow, siphon, enervate affects and cooldowns
+mirrorimage cooldown
+colorburst affect and cooldown
+fly affect?
+terrify
+sap
+prick cooldown
+poison affects?
 -->
 
 <!-- Based heavily on KaVir's Generic GUI for MUSHClient 4.51-->
@@ -19,7 +56,7 @@ investigate white line below logo (rarely visible)
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.2"
+   version="1.3"
    >
 
 </plugin>
@@ -100,7 +137,8 @@ function de_bug()
 end
 
 function gui_info (name, line, wildcards)
-  Note("EmpireHUD v1.2 by Hitsume is installed. The following commands are available:")
+  local vernum = GetPluginInfo(GetPluginID(), 19)
+  Note("EmpireHUD v"..vernum.." by Hitsume is installed. The following commands are available:")
   Note("gui: shows this text.")
   Note("gui <hide/off>: Hides the GUI. You can also do this by disabling the plugin.")
   Note("gui <show/on>: Shows the GUI, if you used gui hide/off.")
@@ -157,6 +195,8 @@ function gui_hide (name, line, wildcards)
   WindowShow(mana_window, false)
   WindowShow(blood_window, false)
   WindowShow(movement_window, false)
+  WindowShow(enemy_window, false)
+  WindowShow(enemy_border_window, false)
   local i = 1
   local status = true
   local error = nil
@@ -493,6 +533,7 @@ function create_layout ()
                 0x000000))  -- background colour
                 
   draw_borders(enemy_border_window, score_width+15, score_top-score_border-5-15)
+  WindowAddHotspot(enemy_window,  "hs_enemy", 0, 0, score_width, enemy_window_height, "", "", "", "", "", "Enemy", 12, 0)
   outlined_text(colourGold, enemy_border_window, "Enemy", 9, score_border, 0, score_width)
   if WindowLoadImage (enemy_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
@@ -1049,6 +1090,10 @@ function max_level (level)
   return (level==50 or level==75 or level==100)
 end
 
+function get_dex(level, isBoss)
+  if isBoss then return math.min(15, math.max(0, math.ceil(level*20*1.25+1.25+2))) else return math.min(15, math.max(0, math.ceil(tonumber(msdp["LEVEL"])*20))) end
+end
+
 function draw_enemy_window()
   check (WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1))  -- redraw the background
   local curr = msdp["OPPONENT_HEALTH"] or "0"
@@ -1061,11 +1106,28 @@ function draw_enemy_window()
     fighting = false
   end
   local text = "nothing"
+  local tooltip = "You are not fighting anything."
   if fighting then --or if you wanted to see the bar anyway?
     text = name.." (lvl "..lev..")"
     draw_mini_bar (0x00aaaa, 0x333333, enemy_window, 0, enemy_window_height/2, score_width, enemy_window_height/2, curr, maxi)
     outlined_text (colourGold, enemy_window, tostring(tonumber(curr)/tonumber(maxi)*100).."%", enemy_window_height*3/10, score_width-4, enemy_window_height/2, 0, 1)
+    local level = tonumber(msdp["OPPONENT_LEVEL"])
+    local dex = msdp["DEX"]
+    
+    local hit_low = math.max(math.ceil(math.max(level-50, 0)+level/10),0) + 5*(get_dex(level, false)-dex)
+    local hit_high = math.max(math.ceil((math.max(level-50, 0)+level/10)*1.43),0) + 5*(get_dex(level, true)-dex)
+    local dodge_low = hit_low
+    local dodge_high = hit_high
+    local block_low = math.max(math.ceil(level/2-50), 0)
+    local block_high = math.max(math.ceil(level/2*1.43-50), 0)
+
+    tooltip = "With your dexterity of "..dex..":"
+    tooltip = tooltip.."\nTo-hit required to hit at all: "..hit_low.."~"..hit_high.." (normal~boss)"
+    tooltip = tooltip.."\nDodge required to dodge at all: "..dodge_low.."~"..dodge_high.." (normal~boss)"
+    tooltip = tooltip.."\nBlock required to block at all: "..block_low.."~"..block_high.." (normal~boss)"
   end
+  WindowHotspotTooltip(enemy_window, "hs_enemy", tooltip)
+  WindowMoveHotspot(enemy_window, "hs_enemy", 0, 0, score_width, enemy_window_height)
   outlined_text (colourSilver, enemy_window, text, enemy_window_height*3/10, 0, 0, score_width)
 end
 
@@ -1135,14 +1197,14 @@ function draw_score ()
     outlined_text (colourSilver, score_window, text, 7, 0, y_offset, score_width)
   end -- if
   y_offset = y_offset + 14
-  local territory_height = 8
-  WindowMoveHotspot(score_window, "hs_terr", 0, y_offset, score_width, y_offset+territory_height)
+  local territory_height = 10
+  WindowMoveHotspot(score_window, "hs_terr", 0, y_offset, score_width, y_offset+territory_height+2)
   if msdp["EMPIRE_TERRITORY"] ~= nil and msdp["EMPIRE_TERRITORY_MAX"] ~= nil then
-    draw_mini_bar(0xaa00aa, 0x330033, score_window, 0, y_offset, score_width, territory_height/2, msdp["EMPIRE_TERRITORY"], msdp["EMPIRE_TERRITORY_MAX"])
+    draw_mini_bar(0xaa00aa, 0x330033, score_window, 0, y_offset, score_width, territory_height/2-1, msdp["EMPIRE_TERRITORY"], msdp["EMPIRE_TERRITORY_MAX"])
   end
-  y_offset = y_offset + territory_height/2
+  y_offset = y_offset + territory_height/2+1
   if msdp["EMPIRE_TERRITORY_OUTSIDE"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"] ~= nil then
-    draw_mini_bar(0xaaaaaa, 0x333333, score_window, 0, y_offset, score_width, territory_height/2, msdp["EMPIRE_TERRITORY_OUTSIDE"], msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"])
+    draw_mini_bar(0xaaaaaa, 0x333333, score_window, 0, y_offset, score_width, territory_height/2-1, msdp["EMPIRE_TERRITORY_OUTSIDE"], msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"])
   end
   if msdp["EMPIRE_TERRITORY"] ~= nil and msdp["EMPIRE_TERRITORY_MAX"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"] ~= nil then
     local territory = tonumber(msdp["EMPIRE_TERRITORY"])
@@ -1158,12 +1220,14 @@ function draw_score ()
   y_offset = y_offset + territory_height/2
 --  text_line = 'Level '..msdp["LEVEL"]..' '..msdp["RACE"]..' '..msdp["CLASS"]
   WindowMoveHotspot(score_window, "hs_level", 0, y_offset+2, score_width, y_offset+14)
+  local lvl = msdp["LEVEL"]
   if msdp["LEVEL"] and msdp["SKILL_LEVEL"] and msdp["GEAR_LEVEL"] and msdp["CRAFTING_LEVEL"] then
     local tooltip = "Combat ["..msdp["LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..msdp["GEAR_LEVEL"].." (gear)\n"
     tooltip = tooltip.."Crafting ["..msdp["CRAFTING_LEVEL"].."]: "..msdp["SKILL_LEVEL"].." (skills) + "..(tonumber(msdp["CRAFTING_LEVEL"])-tonumber(msdp["SKILL_LEVEL"])).." (gear)"
     WindowHotspotTooltip(score_window, "hs_level", tooltip)
+    if msdp["CRAFTING_LEVEL"] > msdp["SKILL_LEVEL"] then lvl=lvl.."|"..msdp["CRAFTING_LEVEL"] end
   end
-  text_line = 'Level '..msdp["LEVEL"]..' '..msdp["CLASS"]
+  text_line = 'Level '..lvl..' '..msdp["CLASS"]
   outlined_text (colourGold, score_window, text_line, 10, 5, y_offset, score_width)
 
   --y_offset = y_offset + 145
@@ -1232,10 +1296,10 @@ function draw_score ()
       --calculate fun stats
       local tododge_self = math.min(95, math.max(0, tonumber(msdp["DODGE"])-tonumber(msdp["TO_HIT"])+100))
       local trash_tohit = math.ceil(math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))-50
-      local trash_dex = math.min(15, math.max(0, math.ceil(tonumber(msdp["LEVEL"])*20)))
+      local trash_dex = get_dex(msdp["LEVEL"], false)
       local tododge_trash = math.min(75, math.max(0, 5*(trash_dex-tonumber(msdp["DEX"]))+(tonumber(msdp["DODGE"])-trash_tohit)))
       local boss_tohit = math.ceil((math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))*1.43)-50
-      local boss_dex = math.min(15, math.max(0, math.ceil(msdp["LEVEL"]*20*1.25+1.25+2)))
+      local boss_dex = get_dex(msdp["LEVEL"], true)
       local tododge_boss = math.min(75, math.max(0, 5*(boss_dex-tonumber(msdp["DEX"]))+(tonumber(msdp["DODGE"])-boss_tohit)))
       WindowHotspotTooltip(score_window, "hs_dodge", "Chance to dodge yourself: "..tododge_self.."%\nChance to dodge trash (your level): "..tododge_trash.."%\nChance to dodge boss (your level): "..tododge_boss.."%")
     end
@@ -1789,11 +1853,12 @@ function draw_dots (startx, starty)
 
       if tonumber(v["DURATION"]) < 0 then
         -- draw an infinity symbol
-        outlined_text (colour, win, "O", 6, 4, 21, 0)
-        outlined_text (colour, win, "O", 6, 9, 21, 0)
+        local start_x = 20
+        outlined_text (colour, win, "O", 6, start_x, 21, 0)
+        outlined_text (colour, win, "O", 6, start_x+5, 21, 0)
         -- go over the first 'O' again, removing the outline from the second 'O'
         WindowFont(win,'f',font,6,1,0,0,0)
-        WindowText(win,'f',"O",4,21,0,0,colour,0)
+        WindowText(win,'f',"O",start_x,21,0,0,colour,0)
       else -- write the duration
         outlined_text (colour, win, seconds_to_minutes(tonumber(v["DURATION"])), 6, offset, 21, 0, true) --4->32
       end -- if
@@ -1894,11 +1959,12 @@ function draw_cooldowns (startx, starty)
 
       if tonumber(CooldownDuration[i]) < 0 then
         -- draw an infinity symbol
-        outlined_text (colour, win, "O", 6, 4, 21, 0)
-        outlined_text (colour, win, "O", 6, 9, 21, 0)
+        local start_x = 20
+        outlined_text (colour, win, "O", 6, start_x, 21, 0)
+        outlined_text (colour, win, "O", 6, start_x+5, 21, 0)
         -- go over the first 'O' again, removing the outline from the second 'O'
         WindowFont(win,'f',font,6,1,0,0,0)
-        WindowText(win,'f',"O",4,21,0,0,colour,0)
+        WindowText(win,'f',"O",start_x,21,0,0,colour,0)
       else -- write the duration
         outlined_text (colour, win, seconds_to_minutes(tonumber(CooldownDuration[i])), 6, offset, 21, 0, true) --4->32
       end -- if
@@ -2011,7 +2077,8 @@ function draw_affects ()
       WindowAddHotspot(win, "hs_affect_"..i, 0, 0, 34, 34, "", "", "", "", "", AffectName[i], 1, 0)
     end -- if
   end -- for
-  draw_dots(base_pos_x, base_pos_y + offset_y + spacing)
+  if AffectMax > 0 then offset_y = offset_y + spacing end
+  draw_dots(base_pos_x, base_pos_y + offset_y)
 end -- draw_affects
 
 
@@ -2358,7 +2425,8 @@ function StoreVariable (MSDP_var, MSDP_val)
 --Note('Variable: '..MSDP_var..' = ['..MSDP_val..']')
   if MSDP_var == "SERVER_ID" then
     create_layout ()
-    SendPkt ("\255\250\69\1PLUGIN_ID\2MUSHclient UI for EmpireMUD (version 0.3)\255\240")
+    local vernum = GetPluginInfo(GetPluginID(), 19)
+    SendPkt ("\255\250\69\1PLUGIN_ID\2MUSHclient UI for EmpireMUD (version "..vernum..")\255\240")
   else -- store the variable
     if msdp_val ~= nil and msdp_var ~= nil then SetVariable("msdp_"..MSDP_var,msdp_val) else if msdp_var ~= nil then DeleteVariable("msdp_"..msdp_var) end end
     msdp[MSDP_var] = MSDP_val
