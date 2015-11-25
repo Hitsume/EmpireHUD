@@ -8,11 +8,6 @@ move gui show/hide to a button?
 investigate white line below logo (rarely visible)
 [it's in the image; will fix later]
 
-Configuration options:
-Show regen on energy bars
-Show max val on energy bars
-Show full stat names on energy bars (HP vs Health)
-
 Need icons for:
 radiance
 rejuvenate (cooldown and affect)
