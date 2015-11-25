@@ -8,6 +8,11 @@ move gui show/hide to a button?
 investigate white line below logo (rarely visible)
 [it's in the image; will fix later]
 
+Configuration options:
+Show regen on energy bars
+Show max val on energy bars
+Show full stat names on energy bars (HP vs Health)
+
 Need icons for:
 radiance
 rejuvenate (cooldown and affect)
@@ -57,7 +62,7 @@ poison affects?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.3"
+   version="1.4"
    >
 
 </plugin>
@@ -106,6 +111,8 @@ local cooldown_window_prefix = "cooldown_window_" --miniwindow ID
 local dot_window_prefix = "dot_window_" --miniwindow ID
 local skill_hotspot_prefix = "hs_skill_"
 local blood_window = "blood_bar"  -- miniwindow ID
+local misc_window = "misc_window" --miniwindow ID
+local misc_border_window = "misc_border_window" --miniwindow ID
 local gui_on = true
 local msdp = {}
 -- configs:
@@ -118,6 +125,7 @@ local score_width = 257
 local xpbar_width = score_width
 local xpbar_height = 14
 local primary_energy_bar_y_offset = 75
+local primary_energy_bar_y_offset_base = 26
 local energybar_width = score_width
 local energybar_offset = 0
 local energybar_height = 20
@@ -127,6 +135,21 @@ local energybar_update_time = 0.1 --seconds, float, max ~59.9
 local debug_mode = false
 local path = "EmpireHUD"; --You may need to change this.
 local font = "Verdana" --Font used for ALL graphical text.
+
+local energy_abbrev = {}
+energy_abbrev["Health"] = "HP"
+energy_abbrev["Mana"] = "MP"
+energy_abbrev["Move"] = "MV"
+energy_abbrev["Blood"] = "BP"
+
+--more configs
+local large_territory_bars = true --Show larger territory bars with numbers on them
+
+local short_bar_names = true --Use the "energy_abbrev" names (above) for health/mana/move/blood
+local show_energy_regen = true --Show "100/5s" etc. on health/mana/move bars
+local show_max_energy = true --Show 1000 / 2000 instead of just 1000 on the health/mana/move bars
+local mud_time_in_score = false --draw the mud time in the score window, next to your name
+
 
 function de_bug()
   if debug_mode then
@@ -151,6 +174,8 @@ function gui_show (name, line, wildcards)
   create_layout()
   -- redraw the enemy score window
   draw_enemy_window ()
+  -- redraw the time window
+  draw_misc_window ()
   -- redraw the score sheet
   draw_score ()
   -- redraw the energy bars
@@ -198,6 +223,8 @@ function gui_hide (name, line, wildcards)
   WindowShow(movement_window, false)
   WindowShow(enemy_window, false)
   WindowShow(enemy_border_window, false)
+  WindowShow(misc_window, false)
+  WindowShow(misc_border_window, false)
   local i = 1
   local status = true
   local error = nil
@@ -410,7 +437,7 @@ function create_layout ()
 
   width_of_title_image = 358
 
-  title_x = (GetInfo (281) - width_of_title_image) / 2
+  title_x = (right - width_of_title_image) / 2
 
   -- make a miniwindow to the left of the text
   check (WindowCreate (titlebar_window,   -- window ID
@@ -546,7 +573,46 @@ function create_layout ()
   --show the window and its border
   WindowShow(enemy_border_window)
   WindowShow(enemy_window)
+  
+  ----------------------------------------------------------------------------
+  -- Draw the "misc information" window
+  ----------------------------------------------------------------------------
+  misc_width = 76
+  
+    check (WindowCreate (misc_border_window,   -- window ID
+                right-misc_width-score_border-11,         -- left
+                15-score_border,    -- top
+                misc_width+2*score_border,        -- width
+                score_top-score_border-5,            -- depth
+                12,         -- center it (ignored anyway) 
+                2,          -- draw underneath (1) + absolute location (2)
+                0x000000))  -- background colour
 
+  -- make a miniwindow for the enemy score
+  --enemy_window_height = score_top-score_border*3-5
+  check (WindowCreate (misc_window,   -- window ID
+                right-misc_width-11,         -- left
+                15,    -- top
+                misc_width,        -- width
+                enemy_window_height,        -- depth
+                12,         -- center it (ignored anyway) 
+                2,          -- draw underneath (1) + absolute location (2)
+                0x000000))  -- background colour
+                
+  draw_borders(misc_border_window, misc_width+15, score_top-score_border-5-15)
+--  WindowAddHotspot(enemy_window,  "hs_enemy", 0, 0, score_width, enemy_window_height, "", "", "", "", "", "Enemy", 12, 0)
+  outlined_text(colourGold, misc_border_window, "Time", 9, score_border, 0, misc_width)
+  if WindowLoadImage (misc_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
+    check (WindowDrawImage (misc_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
+  else -- the file is missing
+    Note( "File '" .. GetInfo (66) .. path .. "/layout/inner_background.png' is missing.")
+  end -- if
+  
+  draw_misc_window()
+  --show the window and its border
+  WindowShow(misc_border_window)
+  WindowShow(misc_window)
+  
   ----------------------------------------------------------------------------
   -- Create the score window to the right of the text.
   ----------------------------------------------------------------------------
@@ -966,6 +1032,7 @@ end --of draw_xp_bar
 local energy_prev = {}
 local energy_current = {}
 local energy_max = {}
+local energy_regen = {}
 --used to pass information to update_bar
 local energy_colours = {}
 local energy_windows = {}
@@ -975,6 +1042,7 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
   -- convert the strings to numbers
   energy_current[type] = tonumber(current_value) or 0
   energy_max[type] = tonumber(max_value) or 0
+  energy_regen[type] = tonumber(regen) or 0
   if previous_value == nil then previous_value = "0" end
   if regen == nil then regen = "0" end
   --Note(type..", "..current_value..", "..max_value..", "..previous_value)
@@ -1075,9 +1143,16 @@ function update_bar(type, colour, colour2, colour3, colour4, window)
       energy_prev[type] = (energy_prev[type]*energybar_update_ratio)+(energy_current[type]*(1-energybar_update_ratio))
     end -- if
     -- write the information inside
-    outlined_text (colourGold, window, type, 9, 3+offset, (height-14)/2, 0)
+	local text = type
+	if short_bar_names then text = energy_abbrev[type] end
+    outlined_text (colourGold, window, text, 9, 3+offset, (height-14)/2, 0)
     if (type ~= "Enemy") then
-      outlined_text (colourGold, window, energy_current[type]..' / '..energy_max[type], 9, 55+offset, (height-14)/2, 90)
+	  local text = energy_current[type]
+	  if show_max_energy then text = text .. ' / ' .. energy_max[type] end
+      outlined_text (colourGold, window, text, 9, 55+offset, (height-14)/2, 90)
+	  if show_energy_regen then
+        outlined_text (colourGold, window, energy_regen[type]..'/5s', 9, energybar_width-53+offset, (height-14)/2, 0, true)
+      end
       outlined_text (colourGold, window, math.ceil(percent)..'%', 9, energybar_width-3+offset, (height-14)/2, 0, true)
     else
       outlined_text (colourGold, window, math.ceil(percent)..'%', 9, 55+offset, (height-14)/2, 0)
@@ -1132,6 +1207,59 @@ function draw_enemy_window()
   outlined_text (colourSilver, enemy_window, text, enemy_window_height*3/10, 0, 0, score_width)
 end
 
+--fill the time window
+function draw_misc_window()
+  check (WindowDrawImage (misc_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
+  draw_mud_time(misc_window, 1, 1)
+  draw_mud_season(misc_window, misc_width-33, 1)
+end
+
+function draw_mud_time(window, x, y)
+  local t, s
+  local success = false
+  local draw_text = true
+  t, s = process_mud_time(msdp["WORLD_TIME"],msdp["WORLD_SEASON"])
+  --draw the time image
+  if WindowLoadImage (window, "time", GetInfo (66) .. path .. "/time/"..t..".png") == eOK then
+    success = true
+    draw_text = false
+  elseif WindowLoadImage (window, "time", GetInfo (66) .. path .. "/time/TimeDefault.png") == eOK then
+    success = true
+  end    
+  if success then
+    check (WindowDrawImage (window, "time", x, y, x+32, y+32, 3))  -- draw it
+  else
+    Note( "File '" .. GetInfo (66) .. path .. "/time/TimeDefault.png' is missing.")
+  end
+  if draw_text then
+    outlined_text (colourGold, window, t, 6, x, y, 32)
+  end
+end
+
+function draw_mud_season(window, x, y)
+  local t, s
+  local success = false
+  local draw_text = true
+  t, s = process_mud_time(msdp["WORLD_TIME"],msdp["WORLD_SEASON"])
+  --draw the season image
+  success = false
+  draw_text = true
+  if WindowLoadImage (window, "season", GetInfo (66) .. path .. "/time/"..s..".png") == eOK then
+    success = true
+    draw_text = false
+  elseif WindowLoadImage (window, "season", GetInfo (66) .. path .. "/time/SeasonDefault.png") == eOK then
+    success = true
+  end    
+  if success then
+    check (WindowDrawImage (window, "season", x, y, x+32, y+32, 3))  -- draw it
+  else
+    Note( "File '" .. GetInfo (66) .. path .. "/time/SeasonDefault.png' is missing.")
+  end -- if
+  if draw_text then
+    outlined_text (colourGold, window, s, 5, x, y, 32)
+  end
+end
+
 -- fill the score
 function draw_score ()
 
@@ -1145,41 +1273,9 @@ function draw_score ()
   -- draw the avatar
   --check (WindowDrawImage (score_window, "avatar", 70, 50, 187, 147, 3))  -- draw it
   --draw the time of day
-  local t, s
-  local success = false
-  local draw_text = true
-  t, s = process_mud_time(msdp["WORLD_TIME"],msdp["WORLD_SEASON"])
-  --draw the time image
-  if WindowLoadImage (score_window, "time", GetInfo (66) .. path .. "/time/"..t..".png") == eOK then
-    success = true
-    draw_text = false
-  elseif WindowLoadImage (score_window, "time", GetInfo (66) .. path .. "/time/TimeDefault.png") == eOK then
-    success = true
-  end    
-  if success then
-    check (WindowDrawImage (score_window, "time", 1, 1, 33, 33, 3))  -- draw it
-  else
-    Note( "File '" .. GetInfo (66) .. path .. "/time/TimeDefault.png' is missing.")
-  end
-  if draw_text then
-    outlined_text (colourGold, score_window, t, 6, 1, 1, 32)
-  end
-  --draw the season image
-  success = false
-  draw_text = true
-  if WindowLoadImage (score_window, "season", GetInfo (66) .. path .. "/time/"..s..".png") == eOK then
-    success = true
-    draw_text = false
-  elseif WindowLoadImage (score_window, "season", GetInfo (66) .. path .. "/time/SeasonDefault.png") == eOK then
-    success = true
-  end    
-  if success then
-    check (WindowDrawImage (score_window, "season", score_width-33, 1, score_width-1, 33, 3))  -- draw it
-  else
-    Note( "File '" .. GetInfo (66) .. path .. "/time/SeasonDefault.png' is missing.")
-  end -- if
-  if draw_text then
-    outlined_text (colourGold, score_window, s, 5, score_width-33, 1, 32)
+  if mud_time_in_score then
+    draw_mud_time(score_window, 1, 1)
+    draw_mud_season(score_window, score_width-33, 1)
   end
   
   x_offset = score_width/2
@@ -1199,14 +1295,24 @@ function draw_score ()
   end -- if
   y_offset = y_offset + 14
   local territory_height = 10
+  if large_territory_bars then territory_height = 24 end
   WindowMoveHotspot(score_window, "hs_terr", 0, y_offset, score_width, y_offset+territory_height+2)
   if msdp["EMPIRE_TERRITORY"] ~= nil and msdp["EMPIRE_TERRITORY_MAX"] ~= nil then
     draw_mini_bar(0xaa00aa, 0x330033, score_window, 0, y_offset, score_width, territory_height/2-1, msdp["EMPIRE_TERRITORY"], msdp["EMPIRE_TERRITORY_MAX"])
+	local curr = msdp["EMPIRE_TERRITORY"]
+	local max = msdp["EMPIRE_TERRITORY_MAX"]
+	local free = max-curr
+    if large_territory_bars then outlined_text(colourGold, score_window, curr .. " / " .. max .. " (" .. free .. " left)", territory_height/4, 4, y_offset+1, score_width) end
   end
   y_offset = y_offset + territory_height/2+1
   if msdp["EMPIRE_TERRITORY_OUTSIDE"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"] ~= nil then
     draw_mini_bar(0xaaaaaa, 0x333333, score_window, 0, y_offset, score_width, territory_height/2-1, msdp["EMPIRE_TERRITORY_OUTSIDE"], msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"])
+	local curr = msdp["EMPIRE_TERRITORY_OUTSIDE"]
+	local max = msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"]
+	local free = max-curr
+    if large_territory_bars then outlined_text(colourGold, score_window, curr .. " / " .. max .. " (" .. free .. " left)", territory_height/4, 4, y_offset+1, score_width) end
   end
+
   if msdp["EMPIRE_TERRITORY"] ~= nil and msdp["EMPIRE_TERRITORY_MAX"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE"] ~= nil and msdp["EMPIRE_TERRITORY_OUTSIDE_MAX"] ~= nil then
     local territory = tonumber(msdp["EMPIRE_TERRITORY"])
     local maxterritory = tonumber(msdp["EMPIRE_TERRITORY_MAX"])
@@ -1219,7 +1325,14 @@ function draw_score ()
     WindowHotspotTooltip(score_window, "hs_terr", tooltip)
   end
   y_offset = y_offset + territory_height/2
---  text_line = 'Level '..msdp["LEVEL"]..' '..msdp["RACE"]..' '..msdp["CLASS"]
+  primary_energy_bar_y_offset = primary_energy_bar_y_offset_base + y_offset
+
+  WindowPosition (health_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset,12,2)
+  WindowPosition (mana_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset+energybar_height+energybar_spacing,12,2)
+  WindowPosition (movement_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset+(energybar_height+energybar_spacing)*2,12,2)
+  WindowPosition (blood_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset+(energybar_height+energybar_spacing)*3,12,2)
+
+  --  text_line = 'Level '..msdp["LEVEL"]..' '..msdp["RACE"]..' '..msdp["CLASS"]
   WindowMoveHotspot(score_window, "hs_level", 0, y_offset+2, score_width, y_offset+14)
   local lvl = msdp["LEVEL"]
   if msdp["LEVEL"] and msdp["SKILL_LEVEL"] and msdp["GEAR_LEVEL"] and msdp["CRAFTING_LEVEL"] then
@@ -2383,7 +2496,10 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
 
     --  redraw the map
     --draw_minimap ()
-    
+	
+	-- redraw the time window
+    draw_misc_window ()
+	
     -- redraw the enemy score window
     draw_enemy_window ()
     
