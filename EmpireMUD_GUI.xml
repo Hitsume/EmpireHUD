@@ -7,6 +7,10 @@ better tohit/dodge calculator
 move gui show/hide to a button?
 investigate white line below logo (rarely visible)
 [it's in the image; will fix later]
+Maybe set up a 15-minute autodownload timer for the graphical map
+Tabs to switch between map and score
+Move map to its own window instead of drawing it on top of score
+Long-term: Only redraw the parts of the score that have changed when new msdp data is received
 
 Need icons for:
 radiance
@@ -57,7 +61,7 @@ poison affects?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.5"
+   version="1.7"
    >
 
 </plugin>
@@ -69,8 +73,11 @@ poison affects?
 <alias script="gui_hide" match="gui hide" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_show" match="gui on" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_hide" match="gui off" enabled="y" sequence="100" ignore_case="y" />
-<alias script="de_bug" match="gui debug" enabled="y" sequence="100" ignore_case="y" />
-<alias script="gui_config" match="^gui config(?: (\w+) (true|false|on|off|enable|disable))?$" enabled="y" sequence="100" ignore_case="y" regexp="y" />
+<alias script="gui_update" match="gui update" enabled="y" sequence="100" ignore_case="y" />
+<alias script="gui_debug" match="gui debug" enabled="y" sequence="100" ignore_case="y" />
+<alias script="gui_update_map" match="gui downloadmap" enabled="y" sequence="100" ignore_case = "y" />
+<alias script="gui_config" match="^gui config(?: (\w+) (true|false|on|off|enable|disable|y(?:es)?|no?))?$" enabled="y" sequence="100" ignore_case="y" regexp="y" />
+<alias match="^gui(?:\s+(.*))?" enabled="y" sequence="999" ignore_case = "y" regexp="y" />
 </aliases>
 
 <timers>
@@ -111,6 +118,7 @@ local time_window = "time_window" --miniwindow ID
 local time_border_window = "time_border_window" --miniwindow ID
 local gui_on = true
 local msdp = {}
+
 -- configs:
 local colourGold = ColourNameToRGB("gold")
 local colourSilver = ColourNameToRGB("silver")
@@ -138,16 +146,25 @@ energy_abbrev["Mana"] = "MP"
 energy_abbrev["Move"] = "MV"
 energy_abbrev["Blood"] = "BP"
 
---more configs
+local map_filename = "map.png"
+local alt_map_filename = "map-political.png"
+
+local map_url = "http://empiremud.net/map.png"
+local alt_map_url = "http://empiremud.net/map-political.png"
+
+--more configs (can be changed using "gui config <setting> <on|off>")
 local configs = {}
 configs["large_territory_bars"] = true --Show larger territory bars with numbers on them
 configs["short_bar_names"] = true --Use the "energy_abbrev" names (above) for health/mana/move/blood
 configs["show_energy_regen"] = true --Show "100/5s" etc. on health/mana/move bars
 configs["show_max_energy"] = true --Show 1000 / 2000 instead of just 1000 on the health/mana/move bars
 configs["mud_time_in_score"] = true --draw the mud time in the score window, next to your name
+configs["always_show_blood"] = false --always show the blood bar, or only when the vampire skill exists
+configs["use_alt_map"] = false --Use alt_map_filename instead of map_filename (useful if you want to use the political graphical map)
+configs["replace_score_with_map"] = false --Replace the entire score window with a giant map of the MUD, showing current location.
 
-
-function de_bug()
+function gui_debug()
+--  sendMSDP("SEND", "HEALTH", "HEALTH_MAX")
   if debug_mode then
     Note("Debug mode disabled.")
   else
@@ -156,15 +173,38 @@ function de_bug()
   debug_mode = not debug_mode
 end
 
+--VERY experimental:
+
+local http = require("socket.http")
+local ltn12 = require("ltn12")
+function downloadFile(file, destination)
+	-- Create local file for saving data
+	local myFile = io.open( destination, "w+b" )
+
+	-- Request remote file and save data to local file
+	http.request{ 
+    	url = file, 
+    	sink = ltn12.sink.file(myFile),
+	}
+end
+	
+function gui_update_map(name, line, wildcards)
+  downloadFile(map_url, GetInfo (66)..path.."/"..map_filename)
+  downloadFile(alt_map_url, GetInfo (66)..path.."/"..alt_map_filename)
+end
+--end of experimental section
+
 function gui_info (name, line, wildcards)
   local vernum = GetPluginInfo(GetPluginID(), 19)
   Note("EmpireHUD v"..vernum.." by Hitsume is installed. The following commands are available:")
   Note("gui: shows this text.")
-  Note("gui <hide/off>: Hides the GUI. You can also do this by disabling the plugin.")
-  Note("gui <show/on>: Shows the GUI, if you used gui hide/off.")
-  Note("gui debug: Shows MSDP-related (and other) debug messages. Can be quite spammy.")
+  Note("gui hide: Hides the GUI. You can also do this by disabling the plugin.")
+  Note("gui show: Shows the GUI, if you used gui hide.")
+  Note("gui update: Updates the state of all MSDP variables, and redraws the GUI.")
+  Note("gui debug: Toggles MSDP-related (and other) debug messages. Can be quite spammy.")
   Note("gui config: Shows all configuration options.")
-  Note("gui config <setting> <on/off>: Sets GUI configs.")
+  Note("gui config <setting> <on|off>: Sets GUI configs.")
+  Note("gui downloadmap: Downloads an up-to-date map from the website.\n  There is no point to using this more than once every 15 minutes.")
   Note()
 end
 
@@ -178,13 +218,17 @@ function gui_config(name, line, wildcards)
     return
   end
   local toset = false
-  if wildcards[2]=="enable" or wildcards[2] == "on" or wildcards[2] == "true" then
-    toset = true
+  local on = {"enable", "on", "true", "yes", "y"}
+  for _,v in ipairs(on) do
+    if string.lower(wildcards[2])==v then
+      toset = true
+	end
   end
   for k,v in pairs(configs) do
-    if string.find(k, wildcards[1], 1, true) then
+    if string.find(k, string.lower(wildcards[1]), 1, true) then
 	  configs[k]=toset
 	  Note(k.." changed to "..tostring(toset)..".")
+	  break
 	end
   end
   if gui_on then gui_show() end
@@ -973,7 +1017,16 @@ function draw_energy_bars ()
   local skills = unpack_array(msdp["SKILLS"])
   local vamp = nil
   if skills then vamp = skills["Vampire"] end
-  if gui_on and current_blood ~= nil and max_blood ~= nil and vamp ~= nil and ((vamp["LEVEL"] ~= nil and vamp["LEVEL"] ~= 0) or (vamp["EXP"] ~= nil and vamp["EXP"] ~= 0)) then
+  --Should we draw the blood bar?
+  local has_vamp = false
+  if vamp~=nil then
+    if (vamp["LEVEL"] ~= nil and tonumber(vamp["LEVEL"]) ~= 0) then
+	  has_vamp = true
+	elseif (vamp["EXP"] ~= nil and tonumber(vamp["EXP"]) ~= 0) then
+	  has_vamp = true
+	end
+  end
+  if gui_on and current_blood ~= nil and max_blood ~= nil and (has_vamp or configs["always_show_blood"]) then
     local type = "Blood"
     colour = 0x0000CC
     colour2 = 0x000033
@@ -1296,16 +1349,58 @@ function draw_mud_season(window, x, y)
   end
 end
 
+--work in progress: w and h are the window size (so it knows how much to offset the map by)
+function draw_mud_map (window, w, h)
+  if not msdp["ROOM"] or msdp["ROOM"] == "" then return end
+  room = unpack_array(msdp["ROOM"])
+  local x = room["COORDS"]["X"]
+  local y = room["COORDS"]["Y"]
+  --TEST
+  local img = GetInfo (66) .. path .. "/map.png"
+  if configs["use_alt_map"] then
+    img = GetInfo (66) .. path .. "/" .. alt_map_filename
+  else
+    img = GetInfo (66) .. path .. "/" .. map_filename
+  end
+  if WindowLoadImage (window, "map", img) == eOK then
+    local map_w = WindowImageInfo(window, "map", 2);
+    local map_h = WindowImageInfo(window, "map", 3);
+	local real_x = x
+	local real_y = map_h - y
+	local viewport_left = real_x-w/2
+	local viewport_top = real_y-h/2
+	local viewport_right = real_x+w/2
+	local viewport_bottom = real_y
+    check (WindowDrawImage (window, "map", viewport_left*-1, viewport_top*-1, viewport_right, viewport_bottom, 1))  -- draw it
+	outlined_text(colourSilver, window, "x", 7, 0, h/2-8, w+2)
+  else -- the file is missing
+    Note( "File '"..img.."' is missing.")
+  end -- if
+  --TEST
+end
+
 -- fill the score
 function draw_score ()
 
   if msdp["CHARACTER_NAME"] == nil or msdp["LEVEL"] == nil or msdp["CLASS"] == nil then
     return
   end -- if
-
+  x_offset = score_width/2
+  y_offset = 6
   -- clear the background
   check (WindowDrawImage (score_window, "score_background", 0, 0, 0, 0, 1))  -- redraw the background
+  
+  if configs["replace_score_with_map"] then
+    draw_mud_map(score_window, score_width, bottom-top-22)
+    primary_energy_bar_y_offset = 11
 
+    WindowPosition (health_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset,12,2)
+    WindowPosition (mana_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset+energybar_height+energybar_spacing,12,2)
+    WindowPosition (movement_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset+(energybar_height+energybar_spacing)*2,12,2)
+    WindowPosition (blood_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset+(energybar_height+energybar_spacing)*3,12,2)
+	return
+  end
+  
   -- draw the avatar
   --check (WindowDrawImage (score_window, "avatar", 70, 50, 187, 147, 3))  -- draw it
   --draw the time of day
@@ -1314,8 +1409,7 @@ function draw_score ()
     draw_mud_season(score_window, score_width-33, 1)
   end
   
-  x_offset = score_width/2
-  y_offset = 6
+
   text_length = outlined_text (colourGold, score_window, msdp["CHARACTER_NAME"], 12, 5, y_offset, score_width-10)
 
   y_offset = y_offset + 18
@@ -1619,7 +1713,6 @@ function draw_score ()
   bottom = GetInfo (280) + bottom_offset
   local inset = 4
   draw_cooldowns(score_left+inset, top+y_offset+11+inset)--(right+34, top+y_offset+11)
-
 end -- draw_score
 
 --Deprecated:
@@ -2273,6 +2366,26 @@ end -- outlined_text
 -- MSDP negotiation
 local MSDP = 69
 
+function sendMSDP(a, ...)
+  arg = {...}
+  local msg = "\255\250\69\1"..a.."\2"..table.concat(arg, "\2").."\2\255\240"
+  if debug_mode then Note("Sent "..msg) end
+  SendPkt(msg)
+end
+
+--An array of every msdp variable used by the GUI
+local msdp_wanted = {"CHARACTER_NAME", "CLASS", "LEVEL", "SKILL_LEVEL", "GEAR_LEVEL", "CRAFTING_LEVEL", "BONUS_EXP",
+  "ROOM", "AFFECTS", "COOLDOWNS", "DOTS", "STR", "INT", "WIT", "DEX", "CHA", "GRT", "STR_PERM", "DEX_PERM", "INT_PERM", "WIT_PERM", "CHA_PERM", "GRT_PERM",
+  "TO_HIT", "DODGE", "BLOCK", "RESIST_PHYSICAL", "RESIST_MAGICAL", "BONUS_PHYSICAL", "BONUS_MAGICAL", "BONUS_HEALING",
+  "SKILLS", "HEALTH", "HEALTH_MAX", "HEALTH_REGEN", "MANA", "MANA_MAX", "MANA_REGEN", "MOVEMENT", "MOVEMENT_MAX", "MOVEMENT_REGEN", "BLOOD", "BLOOD_MAX", "BLOOD_UPKEEP",
+  "EMPIRE_RANK", "EMPIRE_NAME", "EMPIRE_TERRITORY", "EMPIRE_TERRITORY_MAX", "EMPIRE_TERRITORY_OUTSIDE", "EMPIRE_TERRITORY_OUTSIDE_MAX",
+  "WORLD_TIME", "WORLD_SEASON", "OPPONENT_HEALTH", "OPPONENT_HEALTH_MAX", "OPPONENT_LEVEL", "OPPONENT_NAME"}
+  
+function gui_update(name, line, wildcards)
+  sendMSDP("SEND", unpack(msdp_wanted))
+--  if gui_on then gui_show() end
+end
+
 function OnPluginTelnetRequest (neg_type, data)
   if neg_type == MSDP and data == "WILL" then
     using_msdp = true
@@ -2280,24 +2393,8 @@ function OnPluginTelnetRequest (neg_type, data)
   elseif neg_type == MSDP and data == "SENT_DO" then
     -- IAC SB MSDP response IAC SE 
     -- Split up for readability...
-    Basic = "\2CHARACTER_NAME\2CLASS\2LEVEL\2SKILL_LEVEL\2GEAR_LEVEL\2CRAFTING_LEVEL\2BONUS_EXP\2ROOM\2AFFECTS\2COOLDOWNS\2DOTS" --name class level exits affects
-    Primary = "\2STR\2INT\2WIT\2DEX\2CHA\2GRT\2STR_PERM\2INT_PERM\2WIT_PERM\2DEX_PERM\2CHA_PERM\2GRT_PERM" --6 primary stats
-    Secondary = "\2TO_HIT\2DODGE\2BLOCK\2RESIST_PHYSICAL\2RESIST_MAGICAL\2BONUS_PHYSICAL\2BONUS_MAGICAL\2BONUS_HEALING" --the secondary stats
-    --[[local sk = {"BATTLE","EMPIRE","HIGH_SORCERY","NATURAL_MAGIC","STEALTH","SURVIVAL","TRADE","VAMPIRE"}
-    local Skills = ""
-    for _, v in pairs(sk) do
-      Skills = Skills.."\2"..v
-    end
-    Note(Skills)]]
-    local Skills = "\2SKILLS"
-    Bars = "\2HEALTH_MAX\2HEALTH_REGEN\2HEALTH\2MANA_MAX\2MANA_REGEN\2MANA\2MOVEMENT_MAX\2MOVEMENT_REGEN\2MOVEMENT\2BLOOD\2BLOOD_MAX\2BLOOD_UPKEEP" --health mana move blood
-    Empire = "\2EMPIRE_RANK\2EMPIRE_NAME\2EMPIRE_TERRITORY\2EMPIRE_TERRITORY_MAX\2EMPIRE_TERRITORY_OUTSIDE\2EMPIRE_TERRITORY_OUTSIDE_MAX" --more stuff
-    Other = "\2WORLD_TIME\2WORLD_SEASON\2OPPONENT_HEALTH\2OPPONENT_HEALTH_MAX\2OPPONENT_LEVEL\2OPPONENT_NAME"
-    Start = "\255\250\69\1REPORT"
-    Mid = Basic..Primary..Secondary..Bars..Skills..Empire..Other
-    End = "\2\255\240"
-    --
-    SendPkt (Start..Mid..End) --I'm legitimately surprised I can send this much data at once without breaking something
+
+	sendMSDP("REPORT", unpack(msdp_wanted))
     return true
   else -- another protocol
     return false
@@ -2589,3 +2686,4 @@ end -- function StoreVariable
 </script>
 
 </muclient>
+
