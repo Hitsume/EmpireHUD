@@ -10,7 +10,11 @@ investigate white line below logo (rarely visible)
 Maybe set up a 15-minute autodownload timer for the graphical map
 Tabs to switch between map and score
 Move map to its own window instead of drawing it on top of score
+More work on map wrapping (draw duplicate maps on left, right?)
 Long-term: Only redraw the parts of the score that have changed when new msdp data is received
+a cooldown-based lag spike timer?
+add something to the map tooltip to indicate what city it is?
+Move most configs to WindowMenus
 
 Need icons for:
 radiance
@@ -61,7 +65,7 @@ poison affects?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.7"
+   version="1.8"
    >
 
 </plugin>
@@ -164,7 +168,7 @@ configs["use_alt_map"] = false --Use alt_map_filename instead of map_filename (u
 configs["replace_score_with_map"] = false --Replace the entire score window with a giant map of the MUD, showing current location.
 
 function gui_debug()
---  sendMSDP("SEND", "HEALTH", "HEALTH_MAX")
+--  sendMSDP("SEND", "ROOM")
   if debug_mode then
     Note("Debug mode disabled.")
   else
@@ -189,8 +193,10 @@ function downloadFile(file, destination)
 end
 	
 function gui_update_map(name, line, wildcards)
+  local time = os.time()
   downloadFile(map_url, GetInfo (66)..path.."/"..map_filename)
   downloadFile(alt_map_url, GetInfo (66)..path.."/"..alt_map_filename)
+  Note("Done updating graphical map images - took "..os.time()-time.." second(s).")
 end
 --end of experimental section
 
@@ -679,8 +685,10 @@ function create_layout ()
   
   draw_time_window()
   --show the window and its border
-  WindowShow(time_border_window)
-  WindowShow(time_window)
+  if not configs["draw_time_in_score"] then
+    WindowShow(time_border_window)
+    WindowShow(time_window)
+  end
   
   ----------------------------------------------------------------------------
   -- Create the score window to the right of the text.
@@ -717,6 +725,7 @@ function create_layout ()
                 0x000000))  -- background colour
   --add hotspots, for tooltips; more are added later
   WindowAddHotspot(score_window, "hs_terr", 0, 0, 1, 1, "", "", "", "", "", "Territory", 12, 0);
+  WindowAddHotspot(score_window, "hs_map", 0, 0, 1, 1, "map_mouse_enter", "map_mouse_leave", "map_mouse_down", "map_mouse_up_out", "map_mouse_up_in", "Map", 3, 1);
   WindowAddHotspot(score_window, "hs_level", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
   WindowAddHotspot(score_window, "hs_str", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
   WindowAddHotspot(score_window, "hs_dex", 0, 0, 1, 1, "", "", "", "", "", "Dexterity", 12, 0);
@@ -1350,11 +1359,110 @@ function draw_mud_season(window, x, y)
 end
 
 --work in progress: w and h are the window size (so it knows how much to offset the map by)
-function draw_mud_map (window, w, h)
+local map_window = score_window
+local map_mouse_click = false
+local map_offset_x = 0
+local map_offset_y = 0
+
+function map_coords_from_window_coords(x, y)
+  if not msdp["ROOM"] or msdp["ROOM"] == "" then return end
+  room = unpack_array(msdp["ROOM"])
+  
+--  local window_center_offset_x = x - WindowInfo(map_window, 3)/2
+--  local window_center_offset_y = y - WindowInfo(map_window, 4)/2
+  --Figure out the offset
+  
+  local room_x = room["COORDS"]["X"]
+  local room_y = room["COORDS"]["Y"]
+  local map_w = WindowImageInfo(map_window, "map", 2);
+  local map_h = WindowImageInfo(map_window, "map", 3);
+  local real_x = room_x + map_offset_x
+  local real_y = map_h - room_y
+  local w = WindowInfo(map_window, 3)
+  local h = WindowInfo(map_window, 4)
+  local viewport_left = real_x-w/2
+  local viewport_top = real_y-h/2
+  --local viewport_right = real_x+w/2
+  --local viewport_bottom = real_y
+  local map_x = viewport_left + x
+  local map_y = map_h-viewport_top-y
+  return math.floor(map_x+map_offset_x) or -1, math.floor(map_y+map_offset_y) or -1
+end
+
+function map_mouse_enter(flags, hotspot_id)
+  local x = WindowInfo(map_window, 14)
+  local y = WindowInfo(map_window, 15)
+  x,y = map_coords_from_window_coords(x, y)
+  if x == nil or y == nil then Note("map not initialized") return end
+  WindowHotspotTooltip(map_window, "hs_map", "("..x..", "..y..")")
+end
+function map_mouse_leave(flags, hotspot_id)
+  WindowHotspotTooltip(map_window, "hs_map", "Outside Map")
+end
+function map_mouse_down(flags, hotspot_id)
+  map_mouse_click = true
+end
+function map_mouse_up_out(flags, hotspot_id)
+  map_mouse_click = false
+end
+local map_send_mode = "Execute"
+local left_click_cmd = "Just Display"
+function map_mouse_up_in(flags, hotspot_id)
+  if not map_mouse_click then return end
+  local real_x = WindowInfo(map_window, 14)
+  local real_y = WindowInfo(map_window, 15)
+  x,y = map_coords_from_window_coords(real_x, real_y)
+  local will_do = false
+  if bit.band (flags, 0x10) ~= 0 then --LMB
+    cmd = left_click_cmd
+	will_do = true
+--    Note("Target coordinates are: ("..x..", "..y..")")
+  elseif bit.band (flags, 0x20) ~= 0 then --RMB
+    local choices = {"^Do what on left-click? | - ", " >Mode","Execute/Send","Paste Command","< | - ", "Just Display", "goto %c", "at %c look", "pnear %c", "nav %c go", "cede Someone %c"}
+	if map_send_mode == "PasteCommand" then
+	  choices[4] = "+"..choices[4]
+	elseif map_send_mode == "Execute" then
+	  choices[3] = "+"..choices[3]
+	end
+	for k,_ in ipairs(choices) do
+	  --choices[k] = string.gsub(choices[k], "%%c", "("..x..", "..y..")")
+	  --choices[k] = v.." ("..x..", "..y..")"
+	end
+	local cmd = WindowMenu(map_window, real_x, real_y, table.concat(choices, " | "))
+    --local cmd = Menu(table.concat(choices, "|"))
+    if cmd ~= "" and cmd ~= "cancel" then
+	  if cmd == "Paste Command" then
+	    map_send_mode = "PasteCommand"
+	  elseif cmd == "Execute/Send" then
+	    map_send_mode = "Execute"
+	  else
+		left_click_cmd = cmd
+	  end
+	end
+  end
+  if will_do then
+    cmd = string.gsub(cmd, "%%c", "("..x..", "..y..")")
+    if cmd == "Just Display" then
+      Note("Target coordinates are: ("..x..", "..y..")")
+    elseif map_send_mode == "PasteCommand" then
+      PasteCommand(cmd)
+    elseif map_send_mode == "Execute" then
+	  Execute(cmd)
+    end
+  end
+end
+
+function draw_mud_map (window, offset_x, offset_y)
+  offset_x = offset_x or 0
+  offset_y = offset_y or 0
+  map_offset_x = offset_x
+  map_offset_y = offset_y
+  local w = WindowInfo(window, 3)
+  local h = WindowInfo(window, 4)
   if not msdp["ROOM"] or msdp["ROOM"] == "" then return end
   room = unpack_array(msdp["ROOM"])
   local x = room["COORDS"]["X"]
-  local y = room["COORDS"]["Y"]
+  local y = room["COORDS"]["Y"] + offset_y
   --TEST
   local img = GetInfo (66) .. path .. "/map.png"
   if configs["use_alt_map"] then
@@ -1363,16 +1471,22 @@ function draw_mud_map (window, w, h)
     img = GetInfo (66) .. path .. "/" .. map_filename
   end
   if WindowLoadImage (window, "map", img) == eOK then
+    --Figure out the offset required
     local map_w = WindowImageInfo(window, "map", 2);
     local map_h = WindowImageInfo(window, "map", 3);
-	local real_x = x
-	local real_y = map_h - y
+	local real_x = x + 1 --I don't know why, but it centers badly without this
+	local real_y = map_h - y - 1 --Same here
 	local viewport_left = real_x-w/2
 	local viewport_top = real_y-h/2
 	local viewport_right = real_x+w/2
 	local viewport_bottom = real_y
     check (WindowDrawImage (window, "map", viewport_left*-1, viewport_top*-1, viewport_right, viewport_bottom, 1))  -- draw it
-	outlined_text(colourSilver, window, "x", 7, 0, h/2-8, w+2)
+	--Draw the player marker -- todo: make a better formula (based on text size?) for centering
+	local text_size = 7
+	local marker_x_offset = offset_x
+	local marker_y_offset = offset_y - 7
+	outlined_text(colourSilver, window, "x", text_size, 0, math.floor(h/2)+marker_y_offset, w+marker_x_offset*2)
+	--WindowGradient (window, w/2+offset_x-1, h/2+offset_y-1, w/2+offset_x+1, h/2+offset_y+1, colourBlack, colourGreen, 2)
   else -- the file is missing
     Note( "File '"..img.."' is missing.")
   end -- if
@@ -1391,13 +1505,19 @@ function draw_score ()
   check (WindowDrawImage (score_window, "score_background", 0, 0, 0, 0, 1))  -- redraw the background
   
   if configs["replace_score_with_map"] then
-    draw_mud_map(score_window, score_width, bottom-top-22)
+    local bars_y = 60 --vertical height of energy bars
+	if not no_blood then
+      bars_y = bars_y + 20
+    end
+    draw_mud_map(score_window, 0, bars_y/2)
     primary_energy_bar_y_offset = 11
-
+    WindowMoveHotspot(score_window, "hs_map", 0, 0, score_width, bottom-top-22)
     WindowPosition (health_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset,12,2)
     WindowPosition (mana_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset+energybar_height+energybar_spacing,12,2)
     WindowPosition (movement_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset+(energybar_height+energybar_spacing)*2,12,2)
     WindowPosition (blood_window, right+primary_energy_bar_x_offset+energybar_offset, top+primary_energy_bar_y_offset+(energybar_height+energybar_spacing)*3,12,2)
+	y_offset = 60
+    draw_cooldowns(score_left+4, top+y_offset+11+4)
 	return
   end
   
