@@ -65,7 +65,7 @@ poison affects?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.8"
+   version="1.81"
    >
 
 </plugin>
@@ -411,6 +411,99 @@ function draw_borders (window, x, y)
   end -- if
 end
 
+--Handle hotspot mouse events for the score border (map on/off)
+
+local score_border_mouse_click = false
+function score_border_mouse_down(flags, hotspot_id)
+  score_border_mouse_click = true
+end
+function score_border_mouse_up_out(flags, hotspot_id)
+  score_border_mouse_click = false
+end
+function score_border_mouse_up_in(flags, hotspot_id)
+  if not score_border_mouse_click then return end
+  local window = score_border_window
+  local real_x = WindowInfo(window, 14)
+  local real_y = WindowInfo(window, 15)
+  
+  local txt = {"Show map (instead of score)"}
+  local menu = {}
+  for _,v in pairs(txt) do table.insert(menu, v) end
+  if configs["replace_score_with_map"] then menu[1]="+"..txt[1] end
+  local result = WindowMenu(window, real_x, real_y, table.concat(menu,"|"))
+  if result == txt[1] then
+    configs["replace_score_with_map"] = not configs["replace_score_with_map"]
+    draw_score()
+  end
+	
+end
+
+--Handle hotspot mouse events for score items
+local score_mouse_click = false
+function score_mouse_down(flags, hotspot_id)
+  score_mouse_click = true
+end
+function score_mouse_up_out(flags, hotspot_id)
+  score_mouse_click = false
+end
+function score_mouse_up_in(flags, hotspot_id)
+  if not score_mouse_click then return end
+  local window = score_window
+  if hotspot_id == "hs_health" then window = health_window elseif hotspot_id == "hs_mana" then window = mana_window elseif hotspot_id == "hs_movement" then window = movement_window elseif hotspot_id == "hs_blood" then window = blood_window end
+  if hotspot_id == "hs_time_time" then hotspot_id = "hs_time" window = time_window elseif hotspot_id == "hs_time_season" then hotspot_id = "hs_season" window = time_window end
+  local real_x = WindowInfo(window, 14)
+  local real_y = WindowInfo(window, 15)
+  if hotspot_id == "hs_terr" then
+    local txt = {"Show large territory bars"}
+	local menu = {}
+	for _,v in pairs(txt) do table.insert(menu, v) end
+	if configs["large_territory_bars"] then menu[1]="+"..txt[1] end
+	local result = WindowMenu(window, real_x, real_y, table.concat(menu,"|"))
+    if result == txt[1] then
+	  configs["large_territory_bars"] = not configs["large_territory_bars"]
+	  draw_score()
+	end
+  elseif hotspot_id == "hs_health" or hotspot_id == "hs_mana" or hotspot_id == "hs_movement" or hotspot_id == "hs_blood" then
+    local txt = {"Use short bar names", "Show energy regen rates", "Show max energy", "Always show blood bar"}
+	local menu = {}
+	for _,v in pairs(txt) do table.insert(menu, v) end
+	if configs["short_bar_names"] then menu[1]="+"..txt[1] end
+	if configs["show_energy_regen"] then menu[2]="+"..txt[2] end
+	if configs["show_max_energy"] then menu[3]="+"..txt[3] end
+	if configs["always_show_blood"] then menu[4]="+"..txt[4] end
+	local result = WindowMenu(window, real_x, real_y, table.concat(menu,"|"))
+    if result == txt[1] then
+	  configs["short_bar_names"] = not configs["short_bar_names"]
+	elseif result == txt[2] then
+	  configs["show_energy_regen"] = not configs["show_energy_regen"]
+	elseif result == txt[3] then
+	  configs["show_max_energy"] = not configs["show_max_energy"]
+	elseif result == txt[4] then
+	  configs["always_show_blood"] = not configs["always_show_blood"]
+	  if configs["always_show_blood"] then WindowShow(blood_window, true) else WindowShow(blood_window, false) end
+	end
+	draw_energy_bars ()
+	draw_score () --otherwise the blood bar appears on top of str and tohit for a while
+	Redraw()
+  elseif hotspot_id == "hs_time" or hotspot_id == "hs_season" then
+    local txt = {"Draw time in score"}
+	local menu = {}
+	for _,v in pairs(txt) do table.insert(menu, v) end
+	if configs["mud_time_in_score"] then menu[1]="+"..txt[1] end
+	local result = WindowMenu(window, real_x, real_y, table.concat(menu,"|"))
+    if result == txt[1] then
+	  configs["mud_time_in_score"] = not configs["mud_time_in_score"]
+	end
+	draw_score()
+	if configs["mud_time_in_score"] then
+	  WindowShow(time_window, false)
+	else
+	  WindowShow(time_window, true)
+	end
+	draw_time_window()
+  end
+end
+
 -- create the layout here, on getting the prompt, or window resize
 function create_layout ()
   if not gui_on then return end
@@ -675,7 +768,8 @@ function create_layout ()
                 0x000000))  -- background colour
                 
   draw_borders(time_border_window, time_width+15, score_top-score_border-5-15)
---  WindowAddHotspot(enemy_window,  "hs_enemy", 0, 0, score_width, enemy_window_height, "", "", "", "", "", "Enemy", 12, 0)
+  WindowAddHotspot(time_window, "hs_time_time", 0, 0, 1, 1, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "MUD Time", 12, 0);
+  WindowAddHotspot(time_window, "hs_time_season", 0, 0, 1, 1, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "MUD Season", 12, 0);
   outlined_text(colourGold, time_border_window, "Time", 9, score_border, 0, time_width)
   if WindowLoadImage (time_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (time_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
@@ -685,9 +779,12 @@ function create_layout ()
   
   draw_time_window()
   --show the window and its border
-  if not configs["draw_time_in_score"] then
-    WindowShow(time_border_window)
-    WindowShow(time_window)
+  if not configs["mud_time_in_score"] then
+    WindowShow(time_border_window, true)
+    WindowShow(time_window, true)
+  else
+    WindowShow(time_window, false)
+    WindowShow(time_border_window, false)
   end
   
   ----------------------------------------------------------------------------
@@ -703,7 +800,8 @@ function create_layout ()
                 12,         -- center it (ignored anyway) 
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
-
+  --Make a hotspot for the border (only used for the map/score toggle)
+  WindowAddHotspot(score_border_window, "hs_menu", score_border, 0, score_width+score_border, score_border, "", "", "score_border_mouse_down", "score_border_mouse_up_out", "score_border_mouse_up_in", "", 0, 0);
   -- make a miniwindow for the inner area
   local height = math.max(5,bottom-top-22)
 --[[  Tell("x:")
@@ -724,8 +822,10 @@ function create_layout ()
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
   --add hotspots, for tooltips; more are added later
-  WindowAddHotspot(score_window, "hs_terr", 0, 0, 1, 1, "", "", "", "", "", "Territory", 12, 0);
+  WindowAddHotspot(score_window, "hs_terr", 0, 0, 1, 1, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "Territory", 12, 0);
   WindowAddHotspot(score_window, "hs_map", 0, 0, 1, 1, "map_mouse_enter", "map_mouse_leave", "map_mouse_down", "map_mouse_up_out", "map_mouse_up_in", "Map", 3, 1);
+  WindowAddHotspot(score_window, "hs_time", 0, 0, 1, 1, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "MUD Time", 12, 0);
+  WindowAddHotspot(score_window, "hs_season", 0, 0, 1, 1, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "MUD Season", 12, 0);
   WindowAddHotspot(score_window, "hs_level", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
   WindowAddHotspot(score_window, "hs_str", 0, 0, 1, 1, "", "", "", "", "", "Strength", 12, 0);
   WindowAddHotspot(score_window, "hs_dex", 0, 0, 1, 1, "", "", "", "", "", "Dexterity", 12, 0);
@@ -742,7 +842,7 @@ function create_layout ()
   WindowAddHotspot(score_window, "hs_heal", 0, 0, 1, 1, "", "", "", "", "", "Bonus-Healing", 12, 0);
   
   draw_borders(score_border_window, score_width+15, bottom-top-7) --145+110+17
-
+  outlined_text(colourGold, score_border_window, "Score / Map", 9, score_border, 0, score_width)
   -- load the paper background image
   if WindowLoadImage (score_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (score_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
@@ -782,7 +882,7 @@ function create_layout ()
   -- show the window
   WindowShow (health_window, true)
   WindowSetZOrder (health_window, 20) --draw on top of other windows
-  WindowAddHotspot(health_window, "hs_tooltip", 0, 0, energybar_width, energybar_height, "", "", "", "", "", "This is a tooltip!", 12, 0)
+  WindowAddHotspot(health_window, "hs_health", 0, 0, energybar_width, energybar_height, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "This is a tooltip!", 12, 0)
   
   -- make a miniwindow under the text
   check (WindowCreate (mana_window,   -- window ID
@@ -797,7 +897,7 @@ function create_layout ()
   -- show the window
   WindowShow (mana_window, true)
   WindowSetZOrder (mana_window, 20)
-  WindowAddHotspot(mana_window, "hs_tooltip", 0, 0, energybar_width, energybar_height, "", "", "", "", "", "This is a tooltip!", 12, 0)
+  WindowAddHotspot(mana_window, "hs_mana", 0, 0, energybar_width, energybar_height, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "This is a tooltip!", 12, 0)
   
   -- make a miniwindow under the text
   check (WindowCreate (movement_window,   -- window ID
@@ -812,7 +912,7 @@ function create_layout ()
   -- show the window
   WindowShow (movement_window, true)
   WindowSetZOrder (movement_window, 20)
-  WindowAddHotspot(movement_window, "hs_tooltip", 0, 0, energybar_width, energybar_height, "", "", "", "", "", "This is a tooltip!", 12, 0)
+  WindowAddHotspot(movement_window, "hs_movement", 0, 0, energybar_width, energybar_height, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "This is a tooltip!", 12, 0)
   
   -- make a miniwindow under the text
   check (WindowCreate (blood_window,   -- window ID
@@ -827,7 +927,7 @@ function create_layout ()
   -- show the window
   WindowShow (blood_window, true)
   WindowSetZOrder (blood_window, 20)
-  WindowAddHotspot(blood_window, "hs_tooltip", 0, 0, energybar_width, energybar_height, "", "", "", "", "", "This is a tooltip!", 12, 0)
+  WindowAddHotspot(blood_window, "hs_blood", 0, 0, energybar_width, energybar_height, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "This is a tooltip!", 12, 0)
   -- draw the energy bars
   draw_energy_bars ()
 
@@ -1073,7 +1173,7 @@ function draw_mini_bar (colour, colour2, window, x_offset, y_offset, width, heig
     WindowGradient (window, x_offset, y_offset-1, math.ceil(filled*width)+x_offset, y_offset+height/2, colourBlack, colour, 2)
     WindowGradient (window, x_offset, y_offset+height/2, math.ceil(filled*width)+x_offset, y_offset+height+1, colour, colourBlack, 2)
   end
-end
+end -- of draw_mini_bar
 
 --Draws skill experience bars for the score window.
 function draw_xp_bar (skill, colour, colour2, window, x_offset, y_offset, current_value, max_value, level_value)
@@ -1174,7 +1274,15 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
     end
     line1 = "Regenerating "..regen.." per 5 seconds."
   end
-  WindowHotspotTooltip(window, "hs_tooltip", line1..line2)
+  if window == health_window then
+    WindowHotspotTooltip(window, "hs_health", line1..line2)
+  elseif window == mana_window then
+    WindowHotspotTooltip(window, "hs_mana", line1..line2)
+  elseif window == movement_window then
+    WindowHotspotTooltip(window, "hs_movement", line1..line2)
+  elseif window == blood_window then
+    WindowHotspotTooltip(window, "hs_blood", line1..line2)
+  end
   -- redraw the bars
   if energy_prev[type] == nil then energy_prev[type] = energy_current[type] end
   local loops = 0
@@ -1308,8 +1416,13 @@ function draw_time_window()
 	WindowShow(time_border_window, true)
   end
   check (WindowDrawImage (time_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
+  local t, s = process_mud_time(msdp["WORLD_TIME"],msdp["WORLD_SEASON"])
   draw_mud_time(time_window, 1, 1)
+  WindowMoveHotspot(time_window, "hs_time_time", 0, 0, 34, 34)
+  WindowHotspotTooltip(time_window, "hs_time_time", t)
   draw_mud_season(time_window, time_width-33, 1)
+  WindowMoveHotspot(time_window, "hs_time_season", time_width-34, 0, time_width, 34)
+  WindowHotspotTooltip(time_window, "hs_time_season", s)
 end
 
 function draw_mud_time(window, x, y)
@@ -1393,7 +1506,7 @@ function map_mouse_enter(flags, hotspot_id)
   local x = WindowInfo(map_window, 14)
   local y = WindowInfo(map_window, 15)
   x,y = map_coords_from_window_coords(x, y)
-  if x == nil or y == nil then Note("map not initialized") return end
+  if x == nil or y == nil and debug_mode then Note("map not initialized") return end
   WindowHotspotTooltip(map_window, "hs_map", "("..x..", "..y..")")
 end
 function map_mouse_leave(flags, hotspot_id)
@@ -1418,7 +1531,9 @@ function map_mouse_up_in(flags, hotspot_id)
 	will_do = true
 --    Note("Target coordinates are: ("..x..", "..y..")")
   elseif bit.band (flags, 0x20) ~= 0 then --RMB
-    local choices = {"^Do what on left-click? | - ", " >Mode","Execute/Send","Paste Command","< | - ", "Just Display", "goto %c", "at %c look", "pnear %c", "nav %c go", "cede Someone %c"}
+    local choices = {"^Do what on left-click? | - ", " >Mode","Execute/Send","Paste Command","< | - | >Commands", "^%c indicates (x, y)", "Just Display", "goto %c", "at %c look", "pnear %c", "nav %c go", "cede Someone %c", "<|-", "Show alternate (political) map"}
+	local alt_map = choices[#choices]
+	if configs["use_alt_map"] then choices[#choices] = "+"..alt_map end
 	if map_send_mode == "PasteCommand" then
 	  choices[4] = "+"..choices[4]
 	elseif map_send_mode == "Execute" then
@@ -1435,6 +1550,9 @@ function map_mouse_up_in(flags, hotspot_id)
 	    map_send_mode = "PasteCommand"
 	  elseif cmd == "Execute/Send" then
 	    map_send_mode = "Execute"
+	  elseif cmd == alt_map then
+	    configs["use_alt_map"] = not configs["use_alt_map"]
+		draw_score()
 	  else
 		left_click_cmd = cmd
 	  end
@@ -1519,14 +1637,24 @@ function draw_score ()
 	y_offset = 60
     draw_cooldowns(score_left+4, top+y_offset+11+4)
 	return
+  else
+    WindowMoveHotspot(score_window, "hs_map", 0, 0, 1,1)
   end
   
   -- draw the avatar
   --check (WindowDrawImage (score_window, "avatar", 70, 50, 187, 147, 3))  -- draw it
   --draw the time of day
   if configs["mud_time_in_score"] then
+    local t,s = process_mud_time(msdp["WORLD_TIME"],msdp["WORLD_SEASON"])
     draw_mud_time(score_window, 1, 1)
+    WindowMoveHotspot(score_window, "hs_time", 0, 0, 34, 34)
+	WindowHotspotTooltip(score_window, "hs_time", t)
     draw_mud_season(score_window, score_width-33, 1)
+    WindowMoveHotspot(score_window, "hs_season", score_width-34, 0, score_width, 34)
+	WindowHotspotTooltip(score_window, "hs_season", s)
+  else
+    WindowMoveHotspot(score_window, "hs_time", 0, 0, 1, 1)
+    WindowMoveHotspot(score_window, "hs_season", 0, 0, 1, 1)
   end
   
 
