@@ -65,7 +65,7 @@ poison affects?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.81"
+   version="1.82"
    >
 
 </plugin>
@@ -159,6 +159,7 @@ end</send>
 <alias script="gui_debug" match="gui debug" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_update_map" match="gui downloadmap" enabled="y" sequence="100" ignore_case = "y" />
 <alias script="gui_config" match="^gui config(?: (\w+) (true|false|on|off|enable|disable|y(?:es)?|no?))?$" enabled="y" sequence="100" ignore_case="y" regexp="y" />
+<alias script="gui_getvar" match="gui msdp(?: (.+))?" enabled="y" sequence="100" ignore_case = "y" regexp="y" />
 <alias match="^gui(?:\s+(.*))?" enabled="y" sequence="999" ignore_case = "y" regexp="y" />
 </aliases>
 
@@ -289,8 +290,28 @@ function gui_info (name, line, wildcards)
   Note("gui debug: Toggles MSDP-related (and other) debug messages. Can be quite spammy.")
   Note("gui config: Shows all configuration options.")
   Note("gui config <setting> <on|off>: Sets GUI configs.")
-  Note("gui downloadmap: Downloads an up-to-date map from the website.\n  There is no point to using this more than once every 15 minutes.")
+  Note("gui downloadmap: Downloads an up-to-date map from the website. Can be laggy.\n  There is no point to using this more than once every 15 minutes.")
+  Note("gui msdp [variable name]: Attempts to display the contents of a MSDP variable.\n  If used without an argument, lists all MSDP variables stored.")
   Note()
+end
+
+function get_real_type(var)
+  local realtype = type(var)
+  if tonumber(var) then
+    realtype = "number"
+  end
+  return realtype
+end
+
+function gui_getvar (name, line, wildcards)
+  if wildcards[1] == "" then
+    Note("Showing ALL MSDP data:")
+    for k,v in pairs(msdp) do
+	  Note(k..": "..get_real_type(v))
+	end
+  else
+    Note(tostring(msdp[string.upper(wildcards[1])]))
+  end
 end
 
 function gui_config(name, line, wildcards)
@@ -1661,7 +1682,7 @@ function draw_mud_map (window, offset_x, offset_y)
   map_offset_y = offset_y
   local w = WindowInfo(window, 3)
   local h = WindowInfo(window, 4)
-  if not msdp["ROOM"] or msdp["ROOM"] == "" then Note("No MSDP room data.") return end
+  if not msdp["ROOM"] or msdp["ROOM"] == "" then Note("No MSDP room data.\n[You may need to move to a different room after connecting to get map data.]") return end
   room = unpack_array(msdp["ROOM"])
   local x = room["COORDS"]["X"]
   local y = room["COORDS"]["Y"] + offset_y
@@ -2719,7 +2740,7 @@ local msdp_wanted = {"CHARACTER_NAME", "CLASS", "LEVEL", "SKILL_LEVEL", "GEAR_LE
   
 function gui_update(name, line, wildcards)
   sendMSDP("SEND", unpack(msdp_wanted))
---  if gui_on then gui_show() end
+  if gui_on then gui_show() end
 end
 
 function OnPluginTelnetRequest (neg_type, data)
