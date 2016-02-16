@@ -310,7 +310,7 @@ function gui_getvar (name, line, wildcards)
 	  Note(k..": "..get_real_type(v))
 	end
   else
-    Note(tostring(msdp[string.upper(wildcards[1])]))
+    Note(wildcards[1]..": "..tostring(msdp[string.upper(wildcards[1])]))
   end
 end
 
