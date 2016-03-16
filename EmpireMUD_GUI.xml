@@ -15,6 +15,9 @@ Long-term: Only redraw the parts of the score that have changed when new msdp da
 a cooldown-based lag spike timer?
 add something to the map tooltip to indicate what city it is?
 Move most configs to WindowMenus
+Improve scaling of score
+Better way to set font sizes than changing every single text drawing line
+A way to zoom the map
 
 Need icons for:
 radiance
