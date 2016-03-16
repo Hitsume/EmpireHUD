@@ -1639,7 +1639,8 @@ function map_mouse_up_in(flags, hotspot_id)
 	will_do = true
 --    Note("Target coordinates are: ("..x..", "..y..")")
   elseif bit.band (flags, 0x20) ~= 0 then --RMB
-    local choices = {"^Do what on left-click? | - ", " >Mode","Execute/Send","Paste Command","< | - | >Commands", "^%c indicates (x, y)", "Just Display", "goto %c", "at %c look", "pnear %c", "nav %c go", "cede Someone %c", "<|-", "Show alternate (political) map"}
+    --Right click menu (todo: format this better!!)
+    local choices = {"^Do what on left-click? | - ", " >Mode","Execute/Send","Paste Command","< | - | >Commands", "^%c indicates (x, y)", "Just Display", "gui nav %c go", "sailnav %c go", "pnear %c", "cede Someone %c", "goto %c", "at %c look", "<|-", "Show alternate (political) map"}
 	local alt_map = choices[#choices]
 	if configs["use_alt_map"] then choices[#choices] = "+"..alt_map end
 	if map_send_mode == "PasteCommand" then
