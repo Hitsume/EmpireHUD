@@ -59,7 +59,7 @@ prick cooldown
 poison affects?
 -->
 
-<!-- Based heavily on KaVir's Generic GUI for MUSHClient 4.51-->
+<!-- Based originally on KaVir's Generic GUI for MUSHClient 4.51-->
 
 <muclient>
 <plugin
@@ -70,7 +70,7 @@ poison affects?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.9"
+   version="1.91"
    >
 
 </plugin>
@@ -165,6 +165,7 @@ end</send>
 <alias script="gui_update_map" match="gui downloadmap" enabled="y" sequence="100" ignore_case = "y" />
 <alias script="gui_config" match="^gui config(?: (\w+) (true|false|on|off|enable|disable|y(?:es)?|no?))?$" enabled="y" sequence="100" ignore_case="y" regexp="y" />
 <alias script="gui_getvar" match="gui msdp(?: (.+))?" enabled="y" sequence="100" ignore_case = "y" regexp="y" />
+<alias script="gui_mapurl_config" match="gui mapurl (main|alt) (.*)" enabled="y" sequence="100" ignore_case = "y" regexp="y" />
 <alias match="^gui(?:\s+(.*))?" enabled="y" sequence="999" ignore_case = "y" regexp="y" />
 </aliases>
 
@@ -234,8 +235,8 @@ energy_abbrev["Mana"] = "MP"
 energy_abbrev["Move"] = "MV"
 energy_abbrev["Blood"] = "BP"
 
-local map_filename = "map.png"
-local alt_map_filename = "map-political.png"
+local map_filename = WorldName().."-map.png"
+local alt_map_filename = WorldName().."-map-political.png"
 
 local map_url = "http://empiremud.net/map.png"
 local alt_map_url = "http://empiremud.net/map-political.png"
@@ -281,6 +282,13 @@ function downloadFile(file, destination)
     	sink = ltn12.sink.file(myFile),
 	}
 end
+function gui_mapurl_config(name, line, wildcards)
+  if wildcards[1] == "main" then
+    map_url = wildcards[2]
+  elseif wildcards[1] == "alt" then
+    alt_map_url = wildcards[2]
+  end
+end
 	
 function gui_update_map(name, line, wildcards)
   local time = os.time()
@@ -303,6 +311,7 @@ function gui_info (name, line, wildcards)
   Note("gui config <setting> <on|off>: Sets GUI configs.")
   Note("gui downloadmap: Downloads an up-to-date map from the website. Can be laggy.\n  There is no point to using this more than once every 15 minutes.")
   Note("gui msdp [variable name]: Attempts to display the contents of a MSDP variable.\n  If used without an argument, lists all MSDP variables stored.")
+  Note("gui mapurl <main/alt> <url>: Temporarily changes the URL to automatically download MUD maps from.\n  Not necessary unless using gui downloadmap. This can be changed permanently in the xml file's configuration section.")
   Note()
 end
 
@@ -1601,6 +1610,7 @@ local map_offset_y = 0
 
 function map_coords_from_window_coords(x, y, always_use_real_wrap_coords)
   if not msdp["ROOM"] or msdp["ROOM"] == "" then return end
+  if not map_found then Note("No map_found error when getting map coordinates") return 0,0 end --Map is not loaded properly
   room = unpack_array(msdp["ROOM"])
   
 --  local window_center_offset_x = x - WindowInfo(map_window, 3)/2
@@ -1668,10 +1678,11 @@ function map_mouse_up_in(flags, hotspot_id)
 --    Note("Target coordinates are: ("..x..", "..y..")")
   elseif bit.band (flags, 0x20) ~= 0 then --RMB
     --Right click menu (todo: format this better!!)
-    local choices = {"^Do what on left-click? | - ", " >Mode","Execute/Send","Paste Command","< | - | >Commands", "^%c indicates (x, y)", "Just Display", "Scroll Map", "gui nav %c go", "sailnav %c go", "pnear %c", "cede Someone %c", "goto %c", "at %c look", "<|-","Reset map scrolling", "Show alternate (political) map"}
-	local alt_map = choices[#choices]
-	local snap_to_player = choices[#choices-1]
-	if configs["use_alt_map"] then choices[#choices] = "+"..alt_map end
+    local choices = {"^Do what on left-click? | - ", " >Mode","Execute/Send","Paste Command","< | >Commands", "^%c indicates (x, y)", "Just Display", "Scroll Map", "gui nav %c go", "sailnav %c go", "pnear %c", "cede Someone %c", "goto %c", "at %c look", "<|-|^Other options:","Reset map scrolling", "Show alternate (political) map", "Download updated map"}
+	local update_map = choices[#choices]
+	local alt_map = choices[#choices-1]
+	local snap_to_player = choices[#choices-2]
+	if configs["use_alt_map"] then choices[#choices-1] = "+"..alt_map end
 	if map_send_mode == "PasteCommand" then
 	  choices[4] = "+"..choices[4]
 	elseif map_send_mode == "Execute" then
@@ -1698,6 +1709,9 @@ function map_mouse_up_in(flags, hotspot_id)
 		draw_score()
 	  elseif cmd == alt_map then
 	    configs["use_alt_map"] = not configs["use_alt_map"]
+		draw_score()
+	  elseif cmd == update_map then
+	    gui_update_map()
 		draw_score()
 	  else
 	    if string.sub(cmd, 1, 1) == "+" then
@@ -1738,6 +1752,8 @@ function pan_map(to_x, to_y)
   map_viewpos_y = to_y
 end
 
+map_found = nil --Tracks whether the map was loaded ok
+
 function draw_mud_map (window, offset_x, offset_y)
   offset_x = offset_x or 0
   offset_y = offset_y or 0
@@ -1761,6 +1777,7 @@ function draw_mud_map (window, offset_x, offset_y)
     Note(img)
   end
   if WindowLoadImage (window, "map", img) == eOK then
+    map_found = true
     --Figure out the offset required
     local map_w = WindowImageInfo(window, "map", 2);
     local map_h = WindowImageInfo(window, "map", 3);
@@ -1784,9 +1801,28 @@ function draw_mud_map (window, offset_x, offset_y)
 	  marker_x_offset = marker_x_offset + (room["COORDS"]["X"] - map_viewpos_x)
 	  marker_y_offset = marker_y_offset - (room["COORDS"]["Y"] + offset_y - map_viewpos_y)
 	end
-	outlined_text(colourSilver, window, "x", text_size, 0, math.floor(h/2)+marker_y_offset, w+marker_x_offset*2)
+	local symbol = "x"
+	local min_x = w*(-0.5) + offset_x*2
+	local max_x = w*(0.5) - 5
+	local min_y = h*(-0.5) + offset_y*2
+	local max_y = h*(0.5) - 10
+	if marker_x_offset < min_x then
+	  marker_x_offset = min_x
+	  symbol = "<"
+	elseif marker_x_offset > max_x then
+	  marker_x_offset = max_x
+	  symbol = ">"
+	elseif marker_y_offset < min_y then
+	  marker_y_offset = min_y
+	  symbol = "^"
+	elseif marker_y_offset > max_y then
+	  marker_y_offset = max_y
+	  symbol = "v"
+	end
+	outlined_text(colourSilver, window, symbol, text_size, 0, math.floor(h/2)+marker_y_offset, w+marker_x_offset*2)
 	--WindowGradient (window, w/2+offset_x-1, h/2+offset_y-1, w/2+offset_x+1, h/2+offset_y+1, colourBlack, colourGreen, 2)
   else -- the file is missing
+    map_found = false
     Note( "File '"..img.."' is missing.")
   end -- if
   --TEST
