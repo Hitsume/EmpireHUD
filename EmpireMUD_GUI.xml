@@ -16,6 +16,7 @@ Move most configs to WindowMenus
 Improve scaling of score
 Better way to set font sizes than changing every single text drawing line
 A way to zoom the map
+Custom map markers
 
 Look into graphical bugs with very large mapsizes
 
