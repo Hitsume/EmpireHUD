@@ -17,6 +17,7 @@ Improve scaling of score
 Better way to set font sizes than changing every single text drawing line
 A way to zoom the map
 Custom map markers
+bug: when map is panned, coordinates are not reported accurately
 
 Look into graphical bugs with very large mapsizes
 
