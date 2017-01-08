@@ -66,7 +66,7 @@ poison affects?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.93"
+   version="1.94"
    >
 
 </plugin>
@@ -160,6 +160,7 @@ end</send>
 <alias script="gui_debug" match="gui debug" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_update_map" match="gui downloadmap" enabled="y" sequence="100" ignore_case = "y" />
 <alias script="gui_config" match="^gui config(?: (\w+) (true|false|on|off|enable|disable|y(?:es)?|no?))?$" enabled="y" sequence="100" ignore_case="y" regexp="y" />
+<alias script="gui_setskin" match="^gui skin(?: (.+))?" enabled="y" sequence="100" ignore_case="y" regexp="y" />
 <alias script="gui_getvar" match="gui msdp(?: (.+))?" enabled="y" sequence="100" ignore_case = "y" regexp="y" />
 <alias script="gui_mapurl_config" match="gui mapurl (main|alt) (.*)" enabled="y" sequence="100" ignore_case = "y" regexp="y" />
 <alias match="^gui(?:\s+(.*))?" enabled="y" sequence="999" ignore_case = "y" regexp="y" />
@@ -219,10 +220,15 @@ local primary_energy_bar_y_offset_base = 26
 local energybar_offset = 0
 local energybar_height = 20
 local energybar_spacing = 0
-local energybar_update_ratio = 9/10 --update "speed" of energy bars (distance, not framerate)
+local energybar_update_ratio = 9/10 --update "speed" of energy bars (distance, not framerate) 
+--This is the amount of the old position kept, so 1/10 means the previous-energy indicator jumps 9/10ths of the way to the new position per tick
 local energybar_update_time = 0.1 --seconds, float, max ~59.9
+-- For less lag:
+-- local energybar_update_ratio = 1/10 --update "speed" of energy bars (distance, not framerate)
+-- local energybar_update_time = 1.0 --seconds, float, max ~59.9
 local debug_mode = false
 local path = GetPluginInfo(GetPluginID(), 20) --It should not be necessary to change this any more.
+local current_skin = "default" --Still working on this
 local font = "Verdana" --Font used for ALL graphical text.
 
 local energy_abbrev = {}
@@ -309,7 +315,23 @@ function gui_info (name, line, wildcards)
   Note("gui downloadmap: Downloads an up-to-date map from the website. Can be laggy.\n  There is no point to using this more than once every 15 minutes.")
   Note("gui msdp [variable name]: Attempts to display the contents of a MSDP variable.\n  If used without an argument, lists all MSDP variables stored.")
   Note("gui mapurl <main/alt> <url>: Temporarily changes the URL to automatically download MUD maps from.\n  Not necessary unless using gui downloadmap. This can be changed permanently in the xml file's configuration section.")
+  Note("gui skin [skin name]: Sets the current GUI skin. This command won't check if the skin is actually present.")
   Note()
+end
+
+function file_exists(name)
+   local f=io.open(name,"r")
+   if f~=nil then io.close(f) return true else return false end
+end
+
+function gui_setskin(name, line, wildcards)
+  if wildcards[1] == nil or wildcards[1] == "" then
+    Note("Current skin: ".. current_skin)
+    return
+  end
+  Note("Setting skin to " ..wildcards[1])
+  current_skin = wildcards[1]
+  gui_show()
 end
 
 function get_real_type(var)
@@ -494,45 +516,45 @@ update_rendering_constants()
 --draw window borders - used to be done inside create_layout, but it was repeated practically the same way every time
 function draw_borders (window, x, y)
   -- load the left border image
-  if WindowLoadImage (window, "border_left", path .. "/layout/border_left.png") == eOK then
+  if WindowLoadImage (window, "border_left", path .. "/skins/" .. current_skin .. "/layout/border_left.png") == eOK then
     check (WindowDrawImage (window, "border_left", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/border_left.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/border_left.png' is missing.")
   end -- if
 
   -- load the right border image
-  if WindowLoadImage (window, "border_right", path .. "/layout/border_right.png") == eOK then
+  if WindowLoadImage (window, "border_right", path .. "/skins/" .. current_skin .. "/layout/border_right.png") == eOK then
     check (WindowDrawImage (window, "border_right", x, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/border_right.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/border_right.png' is missing.")
   end -- if
 
   -- load the top border image
-  if WindowLoadImage (window, "border_top", path .. "/layout/border_top.png") == eOK then
+  if WindowLoadImage (window, "border_top", path .. "/skins/" .. current_skin .. "/layout/border_top.png") == eOK then
     check (WindowDrawImage (window, "border_top", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/border_top.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/border_top.png' is missing.")
   end -- if
 
   -- load the bottom border image
-  if WindowLoadImage (window, "border_bottom", path .. "/layout/border_bottom.png") == eOK then
+  if WindowLoadImage (window, "border_bottom", path .. "/skins/" .. current_skin .. "/layout/border_bottom.png") == eOK then
     check (WindowDrawImage (window, "border_bottom", 0, y, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/border_top.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/border_top.png' is missing.")
   end -- if
 
   -- load the top right corner image
-  if WindowLoadImage (window, "corner_tr", path .. "/layout/corner_tr.png") == eOK then
+  if WindowLoadImage (window, "corner_tr", path .. "/skins/" .. current_skin .. "/layout/corner_tr.png") == eOK then
     check (WindowDrawImage (window, "corner_tr", x, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/corner_tr.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/corner_tr.png' is missing.")
   end -- if
 
   -- load the bottom right corner image
-  if WindowLoadImage (window, "corner_br", path .. "/layout/corner_br.png") == eOK then
+  if WindowLoadImage (window, "corner_br", path .. "/skins/" .. current_skin .. "/layout/corner_br.png") == eOK then
     check (WindowDrawImage (window, "corner_br", x, y, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/corner_br.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/corner_br.png' is missing.")
   end -- if
 end
 
@@ -667,7 +689,7 @@ function create_layout ()
   -- Set the background, using the textured tile.
   ----------------------------------------------------------------------------
 
-  SetBackgroundImage(path .. "/layout/outer_background.png", 13)
+  SetBackgroundImage(path .. "/skins/" .. current_skin .. "/layout/outer_background.png", 13)
 
   ----------------------------------------------------------------------------
   -- Set the main text area.
@@ -721,10 +743,10 @@ function create_layout ()
   end -- if
 
   -- load the paper background image
-  if WindowLoadImage (background_window, "background_background", path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (background_window, "background_background", path .. "/skins/" .. current_skin .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (background_window, "background_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/inner_background.png' is missing.")
   end -- if
 
   draw_borders(background_window, right-left-7, bottom-top-7)
@@ -751,10 +773,14 @@ function create_layout ()
                 0x000000))  -- background colour
 
   -- load the titlebar image
-  check (WindowLoadImage (titlebar_window, "titlebar", path .. "/layout/Title.png"))
+  if WindowLoadImage (titlebar_window, "titlebar", path .. "/skins/" .. current_skin .. "/layout/Title.png") == eOK then
+    check (WindowDrawImage (titlebar_window, "titlebar", 0, -20, 0, 0, 3))  -- draw it
+  else
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/Title.png' is missing.")
+  end
 
   -- draw it
-  check (WindowDrawImage (titlebar_window, "titlebar", 0, -20, 0, 0, 3))  -- draw it
+  
 
   -- show the window
   WindowShow (titlebar_window, true)
@@ -786,10 +812,10 @@ function create_layout ()
   draw_borders(bars_border_window, 110+17, 110+17)
 
   -- load the paper background image
-  if WindowLoadImage (bars_window, "bars_background", path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (bars_window, "bars_background", path .. "/skins/" .. current_skin .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (bars_window, "bars_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/inner_background.png' is missing.")
   end -- if
 
   -- show the window and its border
@@ -823,10 +849,10 @@ function create_layout ()
   draw_borders(minimap_border_window, 110+17, 110+17)
 
   -- load the paper background image
-  if WindowLoadImage (minimap_window, "minimap_background", path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (minimap_window, "minimap_background", path .. "/skins/" .. current_skin .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (minimap_window, "minimap_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/inner_background.png' is missing.")
   end -- if
 
   -- show the window and its border
@@ -864,10 +890,10 @@ function create_layout ()
   draw_borders(enemy_border_window, score_width+15, score_top-score_border-5-15)
   WindowAddHotspot(enemy_window,  "hs_enemy", 0, 0, score_width, enemy_window_height, "", "", "", "", "", "Enemy", 12, 0)
   outlined_text(colourGold, enemy_border_window, "Enemy", 9, score_border, 0, score_width)
-  if WindowLoadImage (enemy_window, "score_background", path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (enemy_window, "score_background", path .. "/skins/" .. current_skin .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/inner_background.png' is missing.")
   end -- if
   
   draw_enemy_window()
@@ -904,10 +930,10 @@ function create_layout ()
   WindowAddHotspot(time_window, "hs_time_time", 0, 0, 1, 1, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "MUD Time", 12, 0);
   WindowAddHotspot(time_window, "hs_time_season", 0, 0, 1, 1, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "MUD Season", 12, 0);
   outlined_text(colourGold, time_border_window, "Time", 9, score_border, 0, time_width)
-  if WindowLoadImage (time_window, "score_background", path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (time_window, "score_background", path .. "/skins/" .. current_skin .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (time_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/inner_background.png' is missing.")
   end -- if
   
   draw_time_window()
@@ -977,16 +1003,16 @@ function create_layout ()
   draw_borders(score_border_window, score_width+15, bottom-top-7) --145+110+17
   outlined_text(colourGold, score_border_window, "Score / Map", 9, score_border, 0, score_width)
   -- load the paper background image
-  if WindowLoadImage (score_window, "score_background", path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (score_window, "score_background", path .. "/skins/" .. current_skin .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (score_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/inner_background.png' is missing.")
   end -- if
 
   -- load the avatar image
-  if WindowLoadImage (score_window, "avatar", path .. "/avatars/Default.png") ~= eOK then
-    Note( "File '" .. path .. "/avatars/Default.png' is missing.")
-  end -- if
+  --if WindowLoadImage (score_window, "avatar", path .. "/avatars/Default.png") ~= eOK then
+  --  Note( "File '" .. path .. "/avatars/Default.png' is missing.")
+  --end -- if
 
   -- fill in the window
   draw_score ()
@@ -1503,7 +1529,7 @@ function get_dex(level, isBoss)
 end
 
 function draw_enemy_window()
-  check (WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1))  -- redraw the background
+  WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1)  -- redraw the background
   local curr = msdp["OPPONENT_HEALTH"] or "0"
   local maxi = msdp["OPPONENT_HEALTH_MAX"] or "0"
   local lev = msdp["OPPONENT_LEVEL"] or "0"
@@ -1548,7 +1574,7 @@ function draw_time_window()
     WindowShow(time_window, true)
 	WindowShow(time_border_window, true)
   end
-  check (WindowDrawImage (time_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
+  WindowDrawImage (time_window, "score_background", 0, 0, 0, 0, 1)  -- draw it
   local t, s = process_mud_time(msdp["WORLD_TIME"],msdp["WORLD_SEASON"])
   draw_mud_time(time_window, 1, 1)
   WindowMoveHotspot(time_window, "hs_time_time", 0, 0, 34, 34)
@@ -1838,7 +1864,7 @@ function draw_score ()
   x_offset = score_width/2
   y_offset = 6
   -- clear the background
-  check (WindowDrawImage (score_window, "score_background", 0, 0, 0, 0, 1))  -- redraw the background
+  WindowDrawImage (score_window, "score_background", 0, 0, 0, 0, 1)  -- redraw the background
   
   if configs["replace_score_with_map"] then
     local bars_y = 60 --vertical height of energy bars
