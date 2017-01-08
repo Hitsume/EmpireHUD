@@ -20,8 +20,6 @@ Custom map markers
 Fix: tooltips not hidden when switching to map pane [sorta fixed, redrew the gui]
 Look into graphical bugs with very large mapsizes
 
-Look into map snapping back and forth if you select scroll to and click yourself
-
 Need icons for:
 radiance
 rejuvenate (cooldown and affect)
@@ -448,8 +446,8 @@ function gui_hide (name, line, wildcards)
   TextRectangle(
                 0,
                 0,
-                GetInfo (281),
-                GetInfo (280),
+                0,--GetInfo (281),
+                0,--GetInfo (280),
                 1,  -- BorderOffset, 
                 colourGold,    -- BorderColour, 
                 1,  -- BorderWidth, 
