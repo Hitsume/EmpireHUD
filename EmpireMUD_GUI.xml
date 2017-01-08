@@ -17,8 +17,7 @@ Improve scaling of score
 Better way to set font sizes than changing every single text drawing line
 A way to zoom the map
 Custom map markers
-bug: when map is panned, coordinates are not reported accurately
-
+Fix: tooltips not hidden when switching to map pane [sorta fixed, redrew the gui]
 Look into graphical bugs with very large mapsizes
 
 Look into map snapping back and forth if you select scroll to and click yourself
@@ -72,7 +71,7 @@ poison affects?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.91"
+   version="1.92"
    >
 
 </plugin>
@@ -297,6 +296,7 @@ function gui_update_map(name, line, wildcards)
   downloadFile(map_url, GetInfo (66)..path.."/"..map_filename)
   downloadFile(alt_map_url, GetInfo (66)..path.."/"..alt_map_filename)
   Note("Done updating graphical map images - took "..os.time()-time.." second(s).")
+  draw_score() --draw the updated map
 end
 --end of experimental section
 
@@ -314,6 +314,7 @@ function gui_info (name, line, wildcards)
   Note("gui downloadmap: Downloads an up-to-date map from the website. Can be laggy.\n  There is no point to using this more than once every 15 minutes.")
   Note("gui msdp [variable name]: Attempts to display the contents of a MSDP variable.\n  If used without an argument, lists all MSDP variables stored.")
   Note("gui mapurl <main/alt> <url>: Temporarily changes the URL to automatically download MUD maps from.\n  Not necessary unless using gui downloadmap. This can be changed permanently in the xml file's configuration section.")
+  Note("Current directory:"..GetInfo(64))
   Note()
 end
 
@@ -473,6 +474,7 @@ end
 function OnPluginInstall ()
   SetTimerOption("bar_updater", "second", energybar_update_time)
   gui_show ()
+  gui_update() --Avoids the first-time thing of having to specifically type "gui update" when installing
 end
 
 function update_rendering_constants()
@@ -555,16 +557,17 @@ function score_border_mouse_up_in(flags, hotspot_id)
   local real_x = WindowInfo(window, 14)
   local real_y = WindowInfo(window, 15)
   
-  local txt = {"Show map (instead of score)","-","> Adjust score width (pixels)", "^(default is 257)", "257", "500", "750", "1000", "1800","<"}
+  local txt = {"Show map (instead of score)|-|> Adjust score width (pixels)|^(default is 257)","257", "500", "750", "1000", "1800","<"}
   local menu = {}
   for _,v in pairs(txt) do table.insert(menu, v) end
   if configs["replace_score_with_map"] then menu[1]="+"..txt[1] end
-  local result = WindowMenu(window, real_x, real_y, table.concat(menu,"|"))
-  if result == txt[1] then
+  local result = WindowMenu(window, real_x, real_y, "!"..table.concat(menu,"|"))
+  if tonumber(result) == 1 then
     configs["replace_score_with_map"] = not configs["replace_score_with_map"]
-    draw_score()
+    --draw_score()
+	gui_show ()
   elseif tonumber(result) ~= nil then
-    score_width = tonumber(result)
+    score_width = tonumber(txt[tonumber(result)]) -- pick the result out of the table
 	update_rendering_constants()
 	gui_show () --This pretty much requires a full redraw
   end
@@ -591,8 +594,9 @@ function score_mouse_up_in(flags, hotspot_id)
 	local menu = {}
 	for _,v in pairs(txt) do table.insert(menu, v) end
 	if configs["large_territory_bars"] then menu[1]="+"..txt[1] end
-	local result = WindowMenu(window, real_x, real_y, table.concat(menu,"|"))
-    if result == txt[1] then
+	local result = WindowMenu(window, real_x, real_y, "!"..table.concat(menu,"|"))
+	result = tonumber(result)
+    if result == 1 then
 	  configs["large_territory_bars"] = not configs["large_territory_bars"]
 	  draw_score()
 	end
@@ -604,14 +608,15 @@ function score_mouse_up_in(flags, hotspot_id)
 	if configs["show_energy_regen"] then menu[2]="+"..txt[2] end
 	if configs["show_max_energy"] then menu[3]="+"..txt[3] end
 	if configs["always_show_blood"] then menu[4]="+"..txt[4] end
-	local result = WindowMenu(window, real_x, real_y, table.concat(menu,"|"))
-    if result == txt[1] then
+	local result = WindowMenu(window, real_x, real_y, "!"..table.concat(menu,"|"))
+	result = tonumber(result)
+    if result == 1 then
 	  configs["short_bar_names"] = not configs["short_bar_names"]
-	elseif result == txt[2] then
+	elseif result == 2 then
 	  configs["show_energy_regen"] = not configs["show_energy_regen"]
-	elseif result == txt[3] then
+	elseif result == 3 then
 	  configs["show_max_energy"] = not configs["show_max_energy"]
-	elseif result == txt[4] then
+	elseif result == 4 then
 	  configs["always_show_blood"] = not configs["always_show_blood"]
 	  if configs["always_show_blood"] then WindowShow(blood_window, true) else WindowShow(blood_window, false) end
 	end
@@ -623,8 +628,9 @@ function score_mouse_up_in(flags, hotspot_id)
 	local menu = {}
 	for _,v in pairs(txt) do table.insert(menu, v) end
 	if configs["mud_time_in_score"] then menu[1]="+"..txt[1] end
-	local result = WindowMenu(window, real_x, real_y, table.concat(menu,"|"))
-    if result == txt[1] then
+	local result = WindowMenu(window, real_x, real_y, "!"..table.concat(menu,"|"))
+	result = tonumber(result)
+    if result == 1 then
 	  configs["mud_time_in_score"] = not configs["mud_time_in_score"]
 	end
 	draw_score()
@@ -1714,7 +1720,6 @@ function map_mouse_up_in(flags, hotspot_id)
 		draw_score()
 	  elseif cmd == update_map then
 	    gui_update_map()
-		draw_score()
 	  else
 	    if string.sub(cmd, 1, 1) == "+" then
 		  cmd = string.sub(cmd, 2)
@@ -1766,7 +1771,7 @@ function draw_mud_map (window, offset_x, offset_y)
   if not msdp["ROOM"] or msdp["ROOM"] == "" then Note("No MSDP room data.\n[You may need to move to a different room after connecting to get map data.]") return end
   room = unpack_array(msdp["ROOM"])
   local x = map_viewpos_x or room["COORDS"]["X"]
-  local y = map_viewpos_y or (room["COORDS"]["Y"] + offset_y)
+  local y = (map_viewpos_y or room["COORDS"]["Y"]) + offset_y
   --TEST
     
   local img = GetInfo (66) .. path .. "/map.png"
@@ -1801,7 +1806,7 @@ function draw_mud_map (window, offset_x, offset_y)
 	if map_viewpos_x then
 	  --Accounts for map panning and ensures the x is always drawn where you actually are
 	  marker_x_offset = marker_x_offset + (room["COORDS"]["X"] - map_viewpos_x)
-	  marker_y_offset = marker_y_offset - (room["COORDS"]["Y"] + offset_y - map_viewpos_y)
+	  marker_y_offset = marker_y_offset - (room["COORDS"]["Y"] - map_viewpos_y)
 	end
 	local symbol = "x"
 	local min_x = w*(-0.5) + offset_x*2
@@ -1955,17 +1960,17 @@ function draw_score ()
     WindowHotspotTooltip(score_window, "hs_"..lowerstat, "Not working properly.")
     if msdp[stat] ~= nil and msdp[stat.."_PERM"] ~= nil then
       if stat == "STR" then
-         WindowHotspotTooltip(score_window, "hs_str", "Min: 1. Base: "..msdp["STR_PERM"]..". Max: 15.\nProviding +"..msdp["STR"].." physical damage.")
+         WindowHotspotTooltip(score_window, "hs_str", "Min: 1. Base: "..msdp["STR_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["STR"])/4).." physical base DPS.")
       elseif stat == "DEX" then
          WindowHotspotTooltip(score_window, "hs_dex", "Min: 0. Base: "..msdp["DEX_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["DEX"])*5).." To-hit & Dodge.")
       elseif stat == "INT" then
-         WindowHotspotTooltip(score_window, "hs_int", "Min: 1. Base: "..msdp["INT_PERM"]..". Max: 15.\nProviding +"..msdp["INT"].." magical damage.")
+         WindowHotspotTooltip(score_window, "hs_int", "Min: 1. Base: "..msdp["INT_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["INT"])/4).." magical base DPS.")
       elseif stat == "WIT" then
          WindowHotspotTooltip(score_window, "hs_wit", "Min: 0. Base: "..msdp["WIT_PERM"]..". Max: 15.\nProviding "..(tonumber(msdp["WIT"])*0.025*100).."% faster attack speed.")
       elseif stat == "CHA" then
          WindowHotspotTooltip(score_window, "hs_cha", "Min: 1. Base: "..msdp["CHA_PERM"]..". Max: 15.")
       elseif stat == "GRT" then
-         WindowHotspotTooltip(score_window, "hs_grt", "Min: 0. Base: "..msdp["GRT_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["GRT"])*35).." territory.")
+         WindowHotspotTooltip(score_window, "hs_grt", "Min: 0. Base: "..msdp["GRT_PERM"]..". Max: 15.\nProviding +"..(tonumber(msdp["GRT"])*35).." territory ("..(tonumber(msdp["GRT"])*7).." out-of-city).")
       end
       colour = colourSilver
       --convert to numbers to allow comparison
@@ -2006,10 +2011,10 @@ function draw_score ()
     if msdp["LEVEL"] ~= nil and msdp["DEX"] ~= nil and msdp["TO_HIT"] ~= nil then
       --calculate fun stats
       local tododge_self = math.min(95, math.max(0, tonumber(msdp["DODGE"])-tonumber(msdp["TO_HIT"])+100))
-      local trash_tohit = math.ceil(math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))-50
+      local trash_tohit = math.ceil(math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))+50
       local trash_dex = get_dex(msdp["LEVEL"], false)
       local tododge_trash = math.min(75, math.max(0, 5*(trash_dex-tonumber(msdp["DEX"]))+(tonumber(msdp["DODGE"])-trash_tohit)))
-      local boss_tohit = math.ceil((math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))*1.43)-50
+      local boss_tohit = math.ceil((math.max(0, tonumber(msdp["LEVEL"]) - 50) + (tonumber(msdp["LEVEL"]) * 0.1))*1.43)+50
       local boss_dex = get_dex(msdp["LEVEL"], true)
       local tododge_boss = math.min(75, math.max(0, 5*(boss_dex-tonumber(msdp["DEX"]))+(tonumber(msdp["DODGE"])-boss_tohit)))
       WindowHotspotTooltip(score_window, "hs_dodge", "Chance to dodge yourself: "..tododge_self.."%\nChance to dodge trash (your level): "..tododge_trash.."%\nChance to dodge boss (your level): "..tododge_boss.."%")
@@ -2072,8 +2077,10 @@ function draw_score ()
   if msdp["BONUS_PHYSICAL"] ~= nil and msdp["BONUS_MAGICAL"] ~= nil and msdp["BONUS_HEALING"] ~= nil then
     --outlined_text (colourSilver, score_window, msdp["BONUS_PHYSICAL"]..'p '..msdp["BONUS_MAGICAL"]..'m '..msdp["BONUS_HEALING"]..'h', 9, x_offset, 20+y_offset, 0)
     WindowMoveHotspot(score_window, "hs_phys", x_offset, y_offset, (score_width+x_offset*2)/3, y_offset+32)
+	WindowHotspotTooltip(score_window, "hs_phys", "Bonus-Physical\nProviding +"..tonumber(msdp["BONUS_PHYSICAL"]/4).." base physical DPS.")
     outlined_text (colourSilver, score_window, msdp["BONUS_PHYSICAL"], 9, x_offset+5, 20+y_offset, 0)
     WindowMoveHotspot(score_window, "hs_magic", (score_width+x_offset*2)/3, y_offset, (score_width*2+x_offset)/3, y_offset+32)
+	WindowHotspotTooltip(score_window, "hs_magic", "Bonus-Magical\nProviding +"..tonumber(msdp["BONUS_MAGICAL"]/4).." base magical DPS.")
     outlined_text (colourSilver, score_window, msdp["BONUS_MAGICAL"], 9, x_offset, 20+y_offset, (score_width-5)-x_offset)
     WindowMoveHotspot(score_window, "hs_heal", (score_width*2+x_offset)/3, y_offset, score_width, y_offset+32)
     outlined_text (colourSilver, score_window, msdp["BONUS_HEALING"], 9, score_width-8, 20+y_offset, 0, true)
