@@ -23,16 +23,13 @@ Look into graphical bugs with very large mapsizes
 Need icons for:
 radiance
 rejuvenate (cooldown and affect)
-bash
-backstab
-jab (cooldown and affect?)
+jab (affect?)
 disarm (cooldown and affect)
 stunned
 shadowstep
-alternate
 teleport (home and city)
 summon (thugs, animals, guards, humans)
-blind (cooldown and affect)
+blind (affect?)
 entangle (cooldown and affect)
 counterspell
 boost
@@ -225,7 +222,7 @@ local energybar_spacing = 0
 local energybar_update_ratio = 9/10 --update "speed" of energy bars (distance, not framerate)
 local energybar_update_time = 0.1 --seconds, float, max ~59.9
 local debug_mode = false
-local path = "EmpireHUD"; --You may need to change this.
+local path = GetPluginInfo(GetPluginID(), 20) --It should not be necessary to change this any more.
 local font = "Verdana" --Font used for ALL graphical text.
 
 local energy_abbrev = {}
@@ -291,8 +288,8 @@ end
 	
 function gui_update_map(name, line, wildcards)
   local time = os.time()
-  downloadFile(map_url, GetInfo (66)..path.."/"..map_filename)
-  downloadFile(alt_map_url, GetInfo (66)..path.."/"..alt_map_filename)
+  downloadFile(map_url, path.."/"..map_filename)
+  downloadFile(alt_map_url, path.."/"..alt_map_filename)
   Note("Done updating graphical map images - took "..os.time()-time.." second(s).")
   draw_score() --draw the updated map
 end
@@ -312,7 +309,6 @@ function gui_info (name, line, wildcards)
   Note("gui downloadmap: Downloads an up-to-date map from the website. Can be laggy.\n  There is no point to using this more than once every 15 minutes.")
   Note("gui msdp [variable name]: Attempts to display the contents of a MSDP variable.\n  If used without an argument, lists all MSDP variables stored.")
   Note("gui mapurl <main/alt> <url>: Temporarily changes the URL to automatically download MUD maps from.\n  Not necessary unless using gui downloadmap. This can be changed permanently in the xml file's configuration section.")
-  Note("Current directory:"..GetInfo(64))
   Note()
 end
 
@@ -498,45 +494,45 @@ update_rendering_constants()
 --draw window borders - used to be done inside create_layout, but it was repeated practically the same way every time
 function draw_borders (window, x, y)
   -- load the left border image
-  if WindowLoadImage (window, "border_left", GetInfo (66) .. path .. "/layout/border_left.png") == eOK then
+  if WindowLoadImage (window, "border_left", path .. "/layout/border_left.png") == eOK then
     check (WindowDrawImage (window, "border_left", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_left.png' is missing.")
+    Note( "File '" .. path .. "/layout/border_left.png' is missing.")
   end -- if
 
   -- load the right border image
-  if WindowLoadImage (window, "border_right", GetInfo (66) .. path .. "/layout/border_right.png") == eOK then
+  if WindowLoadImage (window, "border_right", path .. "/layout/border_right.png") == eOK then
     check (WindowDrawImage (window, "border_right", x, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_right.png' is missing.")
+    Note( "File '" .. path .. "/layout/border_right.png' is missing.")
   end -- if
 
   -- load the top border image
-  if WindowLoadImage (window, "border_top", GetInfo (66) .. path .. "/layout/border_top.png") == eOK then
+  if WindowLoadImage (window, "border_top", path .. "/layout/border_top.png") == eOK then
     check (WindowDrawImage (window, "border_top", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
+    Note( "File '" .. path .. "/layout/border_top.png' is missing.")
   end -- if
 
   -- load the bottom border image
-  if WindowLoadImage (window, "border_bottom", GetInfo (66) .. path .. "/layout/border_bottom.png") == eOK then
+  if WindowLoadImage (window, "border_bottom", path .. "/layout/border_bottom.png") == eOK then
     check (WindowDrawImage (window, "border_bottom", 0, y, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/border_top.png' is missing.")
+    Note( "File '" .. path .. "/layout/border_top.png' is missing.")
   end -- if
 
   -- load the top right corner image
-  if WindowLoadImage (window, "corner_tr", GetInfo (66) .. path .. "/layout/corner_tr.png") == eOK then
+  if WindowLoadImage (window, "corner_tr", path .. "/layout/corner_tr.png") == eOK then
     check (WindowDrawImage (window, "corner_tr", x, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_tr.png' is missing.")
+    Note( "File '" .. path .. "/layout/corner_tr.png' is missing.")
   end -- if
 
   -- load the bottom right corner image
-  if WindowLoadImage (window, "corner_br", GetInfo (66) .. path .. "/layout/corner_br.png") == eOK then
+  if WindowLoadImage (window, "corner_br", path .. "/layout/corner_br.png") == eOK then
     check (WindowDrawImage (window, "corner_br", x, y, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/corner_br.png' is missing.")
+    Note( "File '" .. path .. "/layout/corner_br.png' is missing.")
   end -- if
 end
 
@@ -671,7 +667,7 @@ function create_layout ()
   -- Set the background, using the textured tile.
   ----------------------------------------------------------------------------
 
-  SetBackgroundImage(GetInfo (66) .. path .. "/layout/outer_background.png", 13)
+  SetBackgroundImage(path .. "/layout/outer_background.png", 13)
 
   ----------------------------------------------------------------------------
   -- Set the main text area.
@@ -725,10 +721,10 @@ function create_layout ()
   end -- if
 
   -- load the paper background image
-  if WindowLoadImage (background_window, "background_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (background_window, "background_background", path .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (background_window, "background_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
   end -- if
 
   draw_borders(background_window, right-left-7, bottom-top-7)
@@ -755,7 +751,7 @@ function create_layout ()
                 0x000000))  -- background colour
 
   -- load the titlebar image
-  check (WindowLoadImage (titlebar_window, "titlebar", GetInfo (66) .. path .. "/layout/Title.png"))
+  check (WindowLoadImage (titlebar_window, "titlebar", path .. "/layout/Title.png"))
 
   -- draw it
   check (WindowDrawImage (titlebar_window, "titlebar", 0, -20, 0, 0, 3))  -- draw it
@@ -790,10 +786,10 @@ function create_layout ()
   draw_borders(bars_border_window, 110+17, 110+17)
 
   -- load the paper background image
-  if WindowLoadImage (bars_window, "bars_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (bars_window, "bars_background", path .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (bars_window, "bars_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
   end -- if
 
   -- show the window and its border
@@ -827,10 +823,10 @@ function create_layout ()
   draw_borders(minimap_border_window, 110+17, 110+17)
 
   -- load the paper background image
-  if WindowLoadImage (minimap_window, "minimap_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (minimap_window, "minimap_background", path .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (minimap_window, "minimap_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
   end -- if
 
   -- show the window and its border
@@ -838,8 +834,8 @@ function create_layout ()
   WindowShow (minimap_window, true)
 
   -- load the terrain images
-  check (WindowLoadImage (minimap_window, "terrain_city", GetInfo (66) .. path .. "/maps/terrain_city.bmp"))
-  check (WindowLoadImage (minimap_window, "terrain_dark", GetInfo (66) .. path .. "/maps/terrain_dark.bmp"))
+  check (WindowLoadImage (minimap_window, "terrain_city", path .. "/maps/terrain_city.bmp"))
+  check (WindowLoadImage (minimap_window, "terrain_dark", path .. "/maps/terrain_dark.bmp"))
 
   -- draw the map
   draw_minimap ()
@@ -868,10 +864,10 @@ function create_layout ()
   draw_borders(enemy_border_window, score_width+15, score_top-score_border-5-15)
   WindowAddHotspot(enemy_window,  "hs_enemy", 0, 0, score_width, enemy_window_height, "", "", "", "", "", "Enemy", 12, 0)
   outlined_text(colourGold, enemy_border_window, "Enemy", 9, score_border, 0, score_width)
-  if WindowLoadImage (enemy_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (enemy_window, "score_background", path .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
   end -- if
   
   draw_enemy_window()
@@ -908,10 +904,10 @@ function create_layout ()
   WindowAddHotspot(time_window, "hs_time_time", 0, 0, 1, 1, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "MUD Time", 12, 0);
   WindowAddHotspot(time_window, "hs_time_season", 0, 0, 1, 1, "", "", "score_mouse_down", "score_mouse_up_out", "score_mouse_up_in", "MUD Season", 12, 0);
   outlined_text(colourGold, time_border_window, "Time", 9, score_border, 0, time_width)
-  if WindowLoadImage (time_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (time_window, "score_background", path .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (time_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
   end -- if
   
   draw_time_window()
@@ -981,15 +977,15 @@ function create_layout ()
   draw_borders(score_border_window, score_width+15, bottom-top-7) --145+110+17
   outlined_text(colourGold, score_border_window, "Score / Map", 9, score_border, 0, score_width)
   -- load the paper background image
-  if WindowLoadImage (score_window, "score_background", GetInfo (66) .. path .. "/layout/inner_background.png") == eOK then
+  if WindowLoadImage (score_window, "score_background", path .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (score_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
   else -- the file is missing
-    Note( "File '" .. GetInfo (66) .. path .. "/layout/inner_background.png' is missing.")
+    Note( "File '" .. path .. "/layout/inner_background.png' is missing.")
   end -- if
 
   -- load the avatar image
-  if WindowLoadImage (score_window, "avatar", GetInfo (66) .. path .. "/avatars/Default.png") ~= eOK then
-    Note( "File '" .. GetInfo (66) .. path .. "/avatars/Default.png' is missing.")
+  if WindowLoadImage (score_window, "avatar", path .. "/avatars/Default.png") ~= eOK then
+    Note( "File '" .. path .. "/avatars/Default.png' is missing.")
   end -- if
 
   -- fill in the window
@@ -1568,16 +1564,16 @@ function draw_mud_time(window, x, y)
   local draw_text = true
   t, s = process_mud_time(msdp["WORLD_TIME"],msdp["WORLD_SEASON"])
   --draw the time image
-  if WindowLoadImage (window, "time", GetInfo (66) .. path .. "/time/"..t..".png") == eOK then
+  if WindowLoadImage (window, "time", path .. "/time/"..t..".png") == eOK then
     success = true
     draw_text = false
-  elseif WindowLoadImage (window, "time", GetInfo (66) .. path .. "/time/TimeDefault.png") == eOK then
+  elseif WindowLoadImage (window, "time", path .. "/time/TimeDefault.png") == eOK then
     success = true
   end    
   if success then
     check (WindowDrawImage (window, "time", x, y, x+32, y+32, 3))  -- draw it
   else
-    Note( "File '" .. GetInfo (66) .. path .. "/time/TimeDefault.png' is missing.")
+    Note( "File '" .. path .. "/time/TimeDefault.png' is missing.")
   end
   if draw_text then
     outlined_text (colourGold, window, t, 6, x, y, 32)
@@ -1592,16 +1588,16 @@ function draw_mud_season(window, x, y)
   --draw the season image
   success = false
   draw_text = true
-  if WindowLoadImage (window, "season", GetInfo (66) .. path .. "/time/"..s..".png") == eOK then
+  if WindowLoadImage (window, "season", path .. "/time/"..s..".png") == eOK then
     success = true
     draw_text = false
-  elseif WindowLoadImage (window, "season", GetInfo (66) .. path .. "/time/SeasonDefault.png") == eOK then
+  elseif WindowLoadImage (window, "season", path .. "/time/SeasonDefault.png") == eOK then
     success = true
   end    
   if success then
     check (WindowDrawImage (window, "season", x, y, x+32, y+32, 3))  -- draw it
   else
-    Note( "File '" .. GetInfo (66) .. path .. "/time/SeasonDefault.png' is missing.")
+    Note( "File '" .. path .. "/time/SeasonDefault.png' is missing.")
   end -- if
   if draw_text then
     outlined_text (colourGold, window, s, 5, x, y, 32)
@@ -1772,11 +1768,11 @@ function draw_mud_map (window, offset_x, offset_y)
   local y = (map_viewpos_y or room["COORDS"]["Y"]) + offset_y
   --TEST
     
-  local img = GetInfo (66) .. path .. "/map.png"
+  local img = path .. "/map.png"
   if configs["use_alt_map"] then
-    img = GetInfo (66) .. path .. "/" .. alt_map_filename
+    img = path .. "/" .. alt_map_filename
   else
-    img = GetInfo (66) .. path .. "/" .. map_filename
+    img = path .. "/" .. map_filename
   end
   if debug_mode then
     Note(img)
@@ -2545,11 +2541,11 @@ function draw_dots (startx, starty)
                     colourBlack))      -- background colour
       WindowSetZOrder (win, 21)
       -- load the icon
-      if WindowLoadImage (win, dot, GetInfo (66) .. path .. "/affects/" .. k .. ".png") == eOK then
+      if WindowLoadImage (win, dot, path .. "/affects/" .. k .. ".png") == eOK then
         check (WindowDrawImage (win, dot, 1, 1, 33, 33, 2))  -- exact name
-      elseif WindowLoadImage (win, dot, GetInfo (66) .. path .. "/affects/" .. v["TYPE"] .. ".png") == eOK then
+      elseif WindowLoadImage (win, dot, path .. "/affects/" .. v["TYPE"] .. ".png") == eOK then
         check (WindowDrawImage (win, dot, 1, 1, 33, 33, 2))  -- type (physical, poison etc.)
-      elseif WindowLoadImage (win, dot, GetInfo (66) .. path .. "/affects/default.png") == eOK then
+      elseif WindowLoadImage (win, dot, path .. "/affects/default.png") == eOK then
         check (WindowDrawImage (win, dot, 1, 1, 33, 33, 2))  -- draw the default affect icon instead
       else -- even the default spell icon is missing
         Note( "Missing spell icons.")
@@ -2653,9 +2649,9 @@ function draw_cooldowns (startx, starty)
                     colourBlack))      -- background colour
       WindowSetZOrder (win, 21)
       -- load the icon
-      if WindowLoadImage (win, cooldown, GetInfo (66) .. path .. "/cooldowns/" .. CooldownName[i] .. ".png") == eOK then
+      if WindowLoadImage (win, cooldown, path .. "/cooldowns/" .. CooldownName[i] .. ".png") == eOK then
         check (WindowDrawImage (win, cooldown, 1, 1, 33, 33, 2))  -- draw the icon
-      elseif WindowLoadImage (win, cooldown, GetInfo (66) .. path .. "/cooldowns/default.png") == eOK then
+      elseif WindowLoadImage (win, cooldown, path .. "/cooldowns/default.png") == eOK then
         check (WindowDrawImage (win, cooldown, 1, 1, 33, 33, 2))  -- draw the default icon instead
       else -- even the default spell icon is missing
         Note( "Missing spell icons.")
@@ -2754,9 +2750,9 @@ function draw_affects ()
                     colourBlack))      -- background colour
       WindowSetZOrder (win, 21)
       -- load the icon
-      if WindowLoadImage (win, affect, GetInfo (66) .. path .. "/affects/" .. AffectName[i] .. ".png") == eOK then
+      if WindowLoadImage (win, affect, path .. "/affects/" .. AffectName[i] .. ".png") == eOK then
         check (WindowDrawImage (win, affect, 1, 1, 33, 33, 2))  -- draw the icon
-      elseif WindowLoadImage (win, affect, GetInfo (66) .. path .. "/affects/default.png") == eOK then
+      elseif WindowLoadImage (win, affect, path .. "/affects/default.png") == eOK then
         check (WindowDrawImage (win, affect, 1, 1, 33, 33, 2))  -- draw the default icon instead
       else -- even the default spell icon is missing
         Note( "Missing spell icons.")
