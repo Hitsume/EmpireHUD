@@ -66,7 +66,7 @@ poison affects?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.94"
+   version="1.95"
    >
 
 </plugin>
@@ -152,6 +152,7 @@ elseif "%5" == "go" then
 end</send>
   </alias>
 <alias script="gui_info" match="gui" enabled="y" sequence="100" ignore_case = "y" />
+<alias script="gui_scroll_map" match="^gui scrollmap \(?\s*(\d+)(?:[\,\s]\s*)(\d+)\)?$" enabled="y" sequence="100" ignore_case="y" regexp="y" />
 <alias script="gui_show" match="gui show" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_hide" match="gui hide" enabled="y" sequence="100" ignore_case="y" />
 <alias script="gui_show" match="gui on" enabled="y" sequence="100" ignore_case="y" />
@@ -291,6 +292,15 @@ function gui_mapurl_config(name, line, wildcards)
     alt_map_url = wildcards[2]
   end
 end
+
+function gui_scroll_map(name, line, wildcards)
+  local x = wildcards[1]
+  local y = wildcards[2]
+  if x==nil or y==nil then Note("Coordinates malformed or invalid.") return end
+  Note("Scrolling map to ("..x..", "..y..").")
+  pan_map(x, y)
+  draw_score()
+end
 	
 function gui_update_map(name, line, wildcards)
   local time = os.time()
@@ -316,6 +326,7 @@ function gui_info (name, line, wildcards)
   Note("gui msdp [variable name]: Attempts to display the contents of a MSDP variable.\n  If used without an argument, lists all MSDP variables stored.")
   Note("gui mapurl <main/alt> <url>: Temporarily changes the URL to automatically download MUD maps from.\n  Not necessary unless using gui downloadmap. This can be changed permanently in the xml file's configuration section.")
   Note("gui skin [skin name]: Sets the current GUI skin. This command won't check if the skin is actually present.")
+  Note("gui scrollmap x,y: Centres the in-client map on (x, y). Coordinate syntax is flexible - 'x y' and '(x, y)' are also accepted.")
   Note()
 end
 
