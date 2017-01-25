@@ -19,6 +19,7 @@ A way to zoom the map
 Custom map markers
 Fix: tooltips not hidden when switching to map pane [sorta fixed, redrew the gui]
 Look into graphical bugs with very large mapsizes
+Make the background for the output window (inner_background) wrap, if possible
 
 Need icons for:
 radiance
@@ -66,7 +67,7 @@ poison affects?
    purpose="A MSDP-based graphical interface for EmpireMUD Beta 2.9+."
    date_written="2015-09-16 07:45:00"
    requires="4.94"
-   version="1.95"
+   version="1.96"
    >
 
 </plugin>
@@ -756,6 +757,26 @@ function create_layout ()
   -- load the paper background image
   if WindowLoadImage (background_window, "background_background", path .. "/skins/" .. current_skin .. "/layout/inner_background.png") == eOK then
     check (WindowDrawImage (background_window, "background_background", 0, 0, 0, 0, 1))  -- draw it
+	--Draw tiling copies of inner_background to fill the text area
+	local window_w = WindowInfo(background_window, 3)
+	local window_h = WindowInfo(background_window, 4)
+	local image_w = WindowImageInfo(background_window, "background_background", 2)
+	local image_h = WindowImageInfo(background_window, "background_background", 3)
+	local x = image_w
+	local y = image_h
+	while true do
+	  if x>=window_w and y>=window_h then break end
+	  while x < window_w do
+	    --Draw a row
+	    check (WindowDrawImage (background_window, "background_background", x, y - image_h, 0, 0, 1))
+		x = x + image_w
+	  end
+	  if y < window_h then
+	    --Next row
+	    x=0
+		y=y+image_h
+	  end
+	end
   else -- the file is missing
     Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/inner_background.png' is missing.")
   end -- if
