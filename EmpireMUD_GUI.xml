@@ -1610,9 +1610,10 @@ function draw_tank_window()
   local name = msdp["OPPONENT_FOCUS_NAME"] or ""
   if maxi == "0" then maxi="100" end
   local text = "nothing"
-  if name ~= "" then
+  --if debug_mode then curr = 33 maxi = 50 name = "Test" end
+  if name ~= "" or debug_mode then
     text = name
-	draw_mini_bar (0x00aaaa, 0x333333, tank_window, 0, enemy_window_height/2, score_width, enemy_window_height/2, curr, maxi)
+	draw_mini_bar (0xaaaa00, 0x333333, tank_window, 0, enemy_window_height/2, score_width, enemy_window_height/2, curr, maxi)
 	percent = math.floor(tonumber(curr)/tonumber(maxi)*100)
 	hp_text = curr.."/"..maxi.." ("..tostring(percent).."%)"
 	outlined_text (colourGold, tank_window, hp_text, enemy_window_height*3/10, score_width-4, enemy_window_height/2, 0, 1) --Health text at the right end of the bar
