@@ -192,6 +192,8 @@ local minimap_window = "minimap_image"  -- miniwindow ID
 local minimap_border_window = "minimap_border"  -- miniwindow ID
 local score_window = "score_image"  -- miniwindow ID
 local score_border_window = "score_border"  -- miniwindow ID
+local tank_window = "tank_window"
+local tank_border_window = "tank_border_window"
 local enemy_window = "enemy_window" --miniwindow ID
 local enemy_border_window = "enemy_border_window" --miniwindow ID
 local health_window = "health_bar"  -- miniwindow ID
@@ -401,6 +403,8 @@ function gui_show ()
   create_layout()
   -- redraw the enemy score window
   draw_enemy_window ()
+  -- redraw the tank health window
+  draw_tank_window ()
   -- redraw the time window
   draw_time_window ()
   -- redraw the score sheet
@@ -411,6 +415,9 @@ function gui_show ()
   draw_affects ()
   
   Redraw()
+  
+  
+  --Showing the windows is not necessary because we re-run create_layout every time... which feels pretty wrong but whatever
 --[[
   WindowShow(background_window, true)
   WindowShow(border_window, true)
@@ -449,6 +456,8 @@ function gui_hide (name, line, wildcards)
   WindowShow(movement_window, false)
   WindowShow(enemy_window, false)
   WindowShow(enemy_border_window, false)
+  WindowShow(tank_window, false)
+  WindowShow(tank_border_window, false)
   WindowShow(time_window, false)
   WindowShow(time_border_window, false)
   local i = 1
@@ -899,6 +908,7 @@ function create_layout ()
   draw_minimap ()
 --]]
 
+  -- Enemy score border window
   check (WindowCreate (enemy_border_window,   -- window ID
                 score_left-score_border,         -- left
                 15-score_border,    -- top
@@ -932,25 +942,58 @@ function create_layout ()
   --show the window and its border
   WindowShow(enemy_border_window)
   WindowShow(enemy_window)
+  ----------------------------------------------------------------------------
+  -- Draw the tank status window
+  ----------------------------------------------------------------------------
+  -- Border window
+    check (WindowCreate (tank_border_window,   -- window ID
+                right-score_width-score_border-11,         -- left
+                15-score_border,    -- top
+                score_width+2*score_border,        -- width
+                score_top-score_border-5,            -- depth
+                12,         -- center it (ignored anyway) 
+                2,          -- draw underneath (1) + absolute location (2)
+                0x000000))  -- background colour
   
+  -- Make a window for the tank / opponent focus stats
+    check (WindowCreate (tank_window,   -- window ID
+                right-score_width-11,         -- left
+                15,    -- top
+                score_width,        -- width
+                enemy_window_height,        -- depth
+                12,         -- center it (ignored anyway) 
+                2,          -- draw underneath (1) + absolute location (2)
+                0x000000))  -- background colour
+  draw_borders(tank_border_window, score_width+15, score_top-score_border-5-15)
+  outlined_text(colourGold, tank_border_window, "Tank", 9, score_border, 0, score_width)
+  
+  if WindowLoadImage (tank_window, "score_background", path .. "/skins/" .. current_skin .. "/layout/inner_background.png") == eOK then
+    check (WindowDrawImage (tank_window, "score_background", 0, 0, 0, 0, 1))  -- draw it
+  else -- the file is missing
+    Note( "File '" .. path .. "/skins/" .. current_skin .. "/layout/inner_background.png' is missing.")
+  end -- if
+  
+  draw_tank_window()
+  
+  WindowShow(tank_border_window)
+  WindowShow(tank_window)
   ----------------------------------------------------------------------------
   -- Draw the time window
   ----------------------------------------------------------------------------
   time_width = 76
   
     check (WindowCreate (time_border_window,   -- window ID
-                right-time_width-score_border-11,         -- left
+                right-time_width-score_width-(score_border*3)-16,         -- left
                 15-score_border,    -- top
                 time_width+2*score_border,        -- width
                 score_top-score_border-5,            -- depth
                 12,         -- center it (ignored anyway) 
                 2,          -- draw underneath (1) + absolute location (2)
                 0x000000))  -- background colour
-
-  -- make a miniwindow for the enemy score
+				
   --enemy_window_height = score_top-score_border*3-5
   check (WindowCreate (time_window,   -- window ID
-                right-time_width-11,         -- left
+                right-time_width-score_width-(score_border*2)-16,         -- left
                 15,    -- top
                 time_width,        -- width
                 enemy_window_height,        -- depth
@@ -1560,6 +1603,23 @@ function get_dex(level, isBoss)
   if isBoss then return math.min(15, math.max(0, math.ceil(level*20*1.25+1.25+2))) else return math.min(15, math.max(0, math.ceil(tonumber(msdp["LEVEL"])*20))) end
 end
 
+function draw_tank_window()
+  WindowDrawImage (tank_window, "score_background", 0, 0, 0, 0, 1)
+  local curr = msdp["OPPONENT_FOCUS_HEALTH"] or "0"
+  local maxi = msdp["OPPONENT_FOCUS_HEALTH_MAX"] or "0"
+  local name = msdp["OPPONENT_FOCUS_NAME"] or ""
+  if maxi == "0" then maxi="100" end
+  local text = "nothing"
+  if name ~= "" then
+    text = name
+	draw_mini_bar (0x00aaaa, 0x333333, tank_window, 0, enemy_window_height/2, score_width, enemy_window_height/2, curr, maxi)
+	percent = math.floor(tonumber(curr)/tonumber(maxi)*100)
+	hp_text = curr.."/"..maxi.." ("..tostring(percent).."%)"
+	outlined_text (colourGold, tank_window, hp_text, enemy_window_height*3/10, score_width-4, enemy_window_height/2, 0, 1) --Health text at the right end of the bar
+  end
+  outlined_text (colourSilver, tank_window, text, enemy_window_height*3/10, 0, 0, score_width)
+end
+
 function draw_enemy_window()
   WindowDrawImage (enemy_window, "score_background", 0, 0, 0, 0, 1)  -- redraw the background
   local curr = msdp["OPPONENT_HEALTH"] or "0"
@@ -1576,7 +1636,7 @@ function draw_enemy_window()
   if fighting then --or if you wanted to see the bar anyway?
     text = name.." (lvl "..lev..")"
     draw_mini_bar (0x00aaaa, 0x333333, enemy_window, 0, enemy_window_height/2, score_width, enemy_window_height/2, curr, maxi)
-    outlined_text (colourGold, enemy_window, tostring(tonumber(curr)/tonumber(maxi)*100).."%", enemy_window_height*3/10, score_width-4, enemy_window_height/2, 0, 1)
+    outlined_text (colourGold, enemy_window, tostring(tonumber(curr)/tonumber(maxi)*100).."%", enemy_window_height*3/10, score_width-4, enemy_window_height/2, 0, 1) --Percentage at the right end of the bar
     local level = tonumber(msdp["OPPONENT_LEVEL"])
     local dex = msdp["DEX"]
     
@@ -2905,7 +2965,8 @@ local msdp_wanted = {"CHARACTER_NAME", "CLASS", "LEVEL", "SKILL_LEVEL", "GEAR_LE
   "TO_HIT", "DODGE", "BLOCK", "RESIST_PHYSICAL", "RESIST_MAGICAL", "BONUS_PHYSICAL", "BONUS_MAGICAL", "BONUS_HEALING",
   "SKILLS", "HEALTH", "HEALTH_MAX", "HEALTH_REGEN", "MANA", "MANA_MAX", "MANA_REGEN", "MOVEMENT", "MOVEMENT_MAX", "MOVEMENT_REGEN", "BLOOD", "BLOOD_MAX", "BLOOD_UPKEEP",
   "EMPIRE_RANK", "EMPIRE_NAME", "EMPIRE_TERRITORY", "EMPIRE_TERRITORY_MAX", "EMPIRE_TERRITORY_OUTSIDE", "EMPIRE_TERRITORY_OUTSIDE_MAX",
-  "WORLD_TIME", "WORLD_SEASON", "OPPONENT_HEALTH", "OPPONENT_HEALTH_MAX", "OPPONENT_LEVEL", "OPPONENT_NAME"}
+  "WORLD_TIME", "WORLD_SEASON", "OPPONENT_HEALTH", "OPPONENT_HEALTH_MAX", "OPPONENT_LEVEL", "OPPONENT_NAME",
+  "OPPONENT_FOCUS_HEALTH_MAX", "OPPONENT_FOCUS_HEALTH", "OPPONENT_FOCUS_NAME"}
   
 function gui_update(name, line, wildcards)
   sendMSDP("SEND", unpack(msdp_wanted))
@@ -3160,7 +3221,7 @@ function OnPluginTelnetSubnegotiation (neg_type, data)
     draw_time_window ()
     -- redraw the enemy score window
     draw_enemy_window ()
-    
+    draw_tank_window ()
     -- redraw the score sheet
     draw_score ()
 
