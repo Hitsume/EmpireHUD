@@ -1527,9 +1527,6 @@ function draw_energy_bar (type, colour, colour2, colour3, colour4, window, curre
 end -- draw_energy_bar
 
 function update_bars()
-  if debug_mode then
-   -- Note("updating bars")
-  end
   for k, v in pairs(energy_current) do --[[if debug_mode then Note(k..": "..energy_prev[k].."<"..energy_max[k].."/"..energy_current[k]) end]] update_bar(k) end
   Redraw()
 end
@@ -1543,8 +1540,6 @@ function update_bar(type, colour, colour2, colour3, colour4, window)
   local colour3 = colour3 or energy_colours[type][3]
   local colour4 = colour4 or energy_colours[type][4]
   local window = window or energy_windows[type]
-  --don't enable this, too spammy
-  --Note(colour, colour2, colour3, colour4, window)
   if not colour or not colour2 or not colour3 or not colour4 or not window then return end
     if energy_max[type] > 0 then
       filled = energy_current[type] / energy_max[type]
@@ -1611,7 +1606,7 @@ function draw_tank_window()
   if maxi == "0" then maxi="100" end
   local text = "nothing"
   --if debug_mode then curr = 33 maxi = 50 name = "Test" end
-  if name ~= "" or debug_mode then
+  if name ~= "" then
     text = name
 	draw_mini_bar (0xaaaa00, 0x333333, tank_window, 0, enemy_window_height/2, score_width, enemy_window_height/2, curr, maxi)
 	percent = math.floor(tonumber(curr)/tonumber(maxi)*100)
