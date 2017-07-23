@@ -2165,14 +2165,16 @@ function draw_score ()
       local magic = tonumber(msdp["RESIST_MAGICAL"])
       local resisted_p = 0
       local resisted_m = 0
-      if tonumber(phys)>max_resist/2 then
+      --if tonumber(phys)>max_resist/2 then
         local use_resist = math.min(max_resist, phys)
-        resisted_p = ((use_resist - (max_resist/2.0)) / (max_resist / 2.0))/4
-      end
-      if tonumber(magic)>max_resist/2 then
+        resisted_p = ((use_resist) / max_resist)/4
+		resisted_p = math.floor(resisted_p * 1000) / 1000
+      --end
+      --if tonumber(magic)>max_resist/2 then
         local use_resist = math.min(max_resist, magic)
-        resisted_m = ((use_resist - (max_resist/2.0)) / (max_resist / 2.0))/4
-      end
+        resisted_m = ((use_resist) / max_resist)/4
+		resisted_m = math.floor(resisted_m * 1000) / 1000
+      --end
       WindowHotspotTooltip(score_window, "hs_resist", "Physical resistance (at your level): "..(resisted_p*100).."%\nMagical resistance (at your level): "..(resisted_m*100).."%")
     end
     outlined_text (colourSilver, score_window, msdp["RESIST_PHYSICAL"]..'|'..msdp["RESIST_MAGICAL"], 9, 65+x_offset, y_offset, 0)
