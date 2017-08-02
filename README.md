@@ -1,7 +1,9 @@
 # EmpireHUD
 Hitsume's MSDP GUI for EmpireMUD b5.9+ and MUSHclient 4.94+
 
-###Installation instructions:
+![Preview](/preview.png?raw=true)
+
+### Installation instructions:
 
 1) Clone this repository, or download it as a zip and extract.
 
@@ -17,7 +19,7 @@ It should now be working! Optionally:
 
 6) Type "gui downloadmap" to acquire a copy of the graphical world map from empiremud.net. It can then be viewed in the score window by right-clicking Score / Map and selecting "Show map (instead of score)".
 
-###Other info:
+### Other info:
 
 A list of text commands used by the GUI can be viewed using the 'gui' alias.
 
@@ -29,7 +31,7 @@ If you don't want to download the standard EmpireMUD map, you can either:
 
 2) Change the URL near the top of the EmpireHUD xml (or use the "gui mapurl main/alt url" command to change it for a single session), then use "gui downloadmap".
 
-###Notes for older users:
+### Notes for older users:
 
 The installation location should no longer matter (though the plugin may not be able to download the map if it's in Program Files).
 
