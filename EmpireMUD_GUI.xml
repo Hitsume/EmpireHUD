@@ -801,7 +801,7 @@ function create_layout ()
 
   width_of_title_image = 358
 
-  title_x = (right - width_of_title_image) / 2
+  title_x = (right - score_width - width_of_title_image) / 2
 
   -- make a miniwindow to the left of the text
   check (WindowCreate (titlebar_window,   -- window ID
