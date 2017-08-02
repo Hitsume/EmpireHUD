@@ -1,5 +1,5 @@
 # EmpireHUD
-Hitsume's MSDP GUI for EmpireMUD b5.9+ and MUSHclient 4.94+
+Hitsume's MSDP GUI for EmpireMUD b5.8+ and MUSHclient 4.94+
 
 ![Preview](/preview.png?raw=true)
 
